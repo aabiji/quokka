@@ -1,13 +1,12 @@
 
 enum TokenType {
-    Number,
+    Number, // TODO: just a thought, what if the numbers are too big????
     Operator
 }
 
 interface Token {
     type: TokenType,
     raw: string,
-    numeric: number
 }
 
 // Tokenize the input expression and return an array of tokens.
@@ -15,7 +14,7 @@ interface Token {
 function tokenize(input: string): Token[] {
     let i = 0;
     let tokens: Token[] = [];
-    let operators = ["+", "-", "*", "/"];
+    let operators = ["+", "-", "*", "/", "^"];
 
     while (i < input.length) {
         // Read up to an operator, ignoring whitespace
@@ -26,11 +25,11 @@ function tokenize(input: string): Token[] {
         }
 
         if (value.length == 0) {
-            tokens.push({ type: TokenType.Operator, raw: input[i], numeric: 0 });
+            tokens.push({ type: TokenType.Operator, raw: input[i] });
             i++; // Since we didn't read anything
         }
         else if (!isNaN(Number(value)))
-            tokens.push({ type: TokenType.Number, raw: value, numeric: Number(value) });
+            tokens.push({ type: TokenType.Number, raw: value });
         else
             throw Error(`Invalid input ${value}`);
     }
@@ -47,7 +46,8 @@ class TokenReader {
         this.tokens = tokenize(input);
     }
 
-    read(advance: boolean): Token | undefined {
+    // TODO: separate functions for peeking and consuming
+    read(advance: boolean = true): Token | undefined {
         if (this.tokenIndex >= this.tokens.length)
             return undefined;
         const current = this.tokens[this.tokenIndex];
@@ -56,13 +56,65 @@ class TokenReader {
     }
 }
 
-/*
-[Pratt parsing](https://engineering.desmos.com/articles/pratt-parser/)
-- Only recurse when the next operator has higher precedence than our previous operator
-- When we have things like parentheses, we can recursively parse with the precedence reset
-*/
-
-function parse(reader: TokenReader) {
+// TODO: this has to go at some point
+function validateToken(token: Token | undefined, expected: TokenType) {
+    if (token == undefined)
+        throw Error("Expected a token, found undefined");
+    if (token.type != expected)
+        throw Error(`Expected ${expected}, found ${token.type} instead`);
 }
 
-parse(new TokenReader("123 + 456 / 789"));
+// TODO: combine associativity and precedence
+function isLeftAssociative(operator: string): boolean {
+    return operator != "^" ? true : false;
+}
+
+function getPrecedence(token: Token): number {
+    // FIXME: storing operators in string this way is kinda dodgy
+    if (token.raw == "+" || token.raw == "-") return 1;
+    if (token.raw == "*" || token.raw == "/") return 2;
+    if (token.raw == "^") return 3;
+    return 0;
+}
+
+// TODO: helper for creatng a new node in a nicer way
+class Node {
+    value: number = 0;
+    left: Node | undefined = undefined;
+    right: Node | undefined = undefined;
+    operator: string | undefined = undefined;
+}
+
+// TODO: how about parentheses??
+function parse(reader: TokenReader, precedence: number): Node {
+    const numberToken = reader.read();
+    validateToken(numberToken, TokenType.Number);
+
+    let currentNode = new Node();
+    currentNode.value = Number((numberToken as Token).raw);
+
+    // Accumulate nodes on the right hand side
+    while (true) {
+        const token = reader.read(false);
+        const nextPrecedence = token == undefined ? 0 : getPrecedence(token);
+        if (token == undefined ||
+            token.type != TokenType.Operator ||
+            nextPrecedence <= precedence)
+            break;
+
+        // temporarily change precedence to group to the left or right based on associativity
+        const newPrecedence = isLeftAssociative(token.raw) ? nextPrecedence : nextPrecedence - 1;
+
+        reader.read();
+        let node = new Node();
+        node.operator = token.raw;
+        node.left = currentNode;
+        node.right = parse(reader, newPrecedence);
+        currentNode = node;
+    }
+
+    return currentNode;
+}
+
+const node = parse(new TokenReader("12 - 34 + 56"), 0);
+console.log(node);
