@@ -1,24 +1,29 @@
-# Graphing calculator
-
-TODO: figure out the tech stack -- what do I want to work with for several months??
-      choose a name
-      break down the project into smaller subprojects
-      prelimenary research -- how is this going to work??
-
-Tech stack?
-- typescript, webgl, webassembly
-- rust, webassembly
-- c++, raylib -- wasm compiled (think aobut writing a preprocessor so I don't have to touch header files)
-
-Potential names:
-graph-lauren, graphcalc
-
-**Basic MVP**: Graphing a linear equation in the browser
-Why??
+# Quokka
+A graphing calculator app. The basic mvp would be a basic graph
+of a linear equation in a fixed resolution. Why?
 - Figure out how Desmos works by building my own basic graphing calculator.
 - Learn some more math!
 - Make some [cool graphs](https://www.desmos.com/calculator/btezq8hinh)
 - Solving and implementing hard technical problems is fun
+
+Implemetation outline:
+- Using Typescript
+  - Using the DOM directly (no frontend library)
+  - Using the Canvas API to render the graph (use WebGL eventually)
+- Parser that'll convert our string (or latex) input to a math expression ast
+- Evaluator that'll evaluate our ast where it can
+- Plotter that'll sample the equation at discrete points and draw lines using those points
+- UI to enter expressions and render them in a nice way
+
+- What is Desmos doing?
+  - Converting your input into Latex
+    - Using library to do the conversion and the rendering
+  - Parsing the Latex into an expression tree
+  - Symplifying the expression tree (so like plugging in known external variables,
+    replacing evaluable expressions with a constant, etc).
+    - Converting each node to javascript code for evaluation
+  - Sampling the compiled expression at a discrete set of points and using those points
+    to form line segments that are then drawn. Using techniques to simplify the plotted graph
 
 Questions:
 - How are we parsing and representing the math??
@@ -30,6 +35,7 @@ Questions:
 
 Nice to have features:
 - What if in our readme we had a screenshot of the app's name being graphed???
+  (drawing cursive text using math equations!)
 - Extremely fast and extremely accurate computation
 - Support diverse equations:
     - Quadratic and cubic equations
