@@ -26,7 +26,7 @@ Implemetation outline:
     to form line segments that are then drawn. Using techniques to simplify the plotted graph
 
 Questions:
-- How are we parsing and representing the math??
+- How are we parsing and representing the math?? What if the numbers are too big??
 - How are we plotting the math expression?
 - How are we solving/evaluating the equations??
   How would we plot a continuous function in a discreet way??
