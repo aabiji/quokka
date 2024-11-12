@@ -1,5 +1,3 @@
 import { expect, test } from "bun:test";
+import { Node, parse } from "./parser.ts";
 
-test("example", () => {
-    expect(2 + 2).toBe(4);
-});
