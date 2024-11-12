@@ -2,7 +2,7 @@
 export enum TokenType {
     Number,
     Operator,
-    Identifier,
+    Variable,
     OpenParen,
     ClosedParen,
 }
@@ -64,15 +64,17 @@ export function tokenize(input: string): Token[] {
         }
 
         // Extract identifier strings
-        let raw = "";
+        let identifier = "";
         while (i < input.length) {
             if (invalidChars.includes(input[i]) || !isNaN(parseInt(input[i])))
                 break;
-            raw += input[i++];
+            identifier += input[i++];
         }
 
-        if (raw.length > 0) {
-            tokens.push({ type: TokenType.Identifier, raw });
+        if (identifier.length > 0) {
+            if (identifier.length > 1) // We won't support functions for now
+                throw Error(`Invalid variable ${identifier}. Variables can only be 1 letter long`);
+            tokens.push({ type: TokenType.Variable, raw: identifier });
             continue;
         }
 

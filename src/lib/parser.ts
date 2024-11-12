@@ -1,13 +1,34 @@
 import { TokenReader, TokenType, operatorInfo } from "./lexer.ts";
 
+// TODO: each node should have a type
 export interface Node {
     left: Node | undefined,
     right: Node | undefined,
     value: number | string | undefined,
 }
 
+/*
+Some parsing rules:
+- A number immediately next to a variable should count as a multiplication.
+  The other way around is an error.
+- A variable immediately next to another variable should count as a multiplication
+- A number or variable immediately next to (before or after) a grouping
+  should count as a multiplication
+- A number or a variale or a grouping followed by a operator and then another
+  number or variable or grouping is a binary operation
+- An expression that starts with a unary operator (+, -) is a unary expression
+  ex: -123, -1 * x, -y, -(12 / 2)
+
+Some parsing errors:
+- A number immediately followed by a number is an error
+- An operator that's not immediately followed by an expression is an error 
+    - An operator immediately followed by another operator is an error
+- A non unary operator that's not preceded by an expression is an error
+- An unclosed parentheses is an error
+*/
+
 // Parse a single node
-function prattParseNode(reader: TokenReader): Node {
+function parseOperand(reader: TokenReader): Node {
     let node: Node = { value: undefined, left: undefined, right: undefined };
 
     const token = reader.read();
@@ -18,7 +39,7 @@ function prattParseNode(reader: TokenReader): Node {
         case TokenType.Number:
             node.value = Number(token.raw);
             break;
-        case TokenType.Identifier:
+        case TokenType.Variable:
             node.value = token.raw;
             break;
         case TokenType.OpenParen:
@@ -35,13 +56,11 @@ function prattParseNode(reader: TokenReader): Node {
     return node;
 }
 
-// TODO: a number or identifier immediately next to a parentheses (before or after) should be a multiplication
-// TODO: how should we parse functions
-// TODO: test this function against different inputs
 function prattParse(reader: TokenReader, currentPrecedence: number): Node {
-    let currentNode = prattParseNode(reader); // Parse the left hand side
+    let currentNode = parseOperand(reader); // Parse the left hand side
 
-    // Build the parse tree
+    // Build the parse tree by accumulating nodes on the right hand side.
+    // We're treating the expression as a successive list of binary operators.
     while (true) {
         const token = reader.read(false);
         if (token === undefined ||
@@ -53,8 +72,8 @@ function prattParse(reader: TokenReader, currentPrecedence: number): Node {
         const [precedence, groupLeft] = operatorInfo(token);
         const next = groupLeft ? precedence : precedence - 1;
 
-        reader.read(); // Advance reader
-        currentNode = { // Accumulate on the right hand side
+        reader.read();
+        currentNode = {
             left: currentNode,
             right: prattParse(reader, next),
             value: token.raw
@@ -68,3 +87,5 @@ export function parse(expression: string): Node {
     const reader = new TokenReader(expression);
     return prattParse(reader, 0);
 }
+
+console.log(parse("(123 * 2)"));
