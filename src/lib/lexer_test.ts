@@ -16,13 +16,17 @@ test("Tokenize Operators", () => {
 test("Tokenize Values", () => {
     const expected = [
         { type: TokenType.Number, raw: "123" },
-        { type: TokenType.Variable, raw: "x" },
+        { type: TokenType.Identifier, raw: "x" },
         { type: TokenType.Operator, raw: "-" },
         { type: TokenType.Number, raw: "1.23" },
         { type: TokenType.Operator, raw: "+" },
-        { type: TokenType.Variable, raw: "x" },
+        { type: TokenType.Identifier, raw: "x" },
+        { type: TokenType.Operator, raw: "/" },
+        { type: TokenType.Identifier, raw: "x" },
+        { type: TokenType.Identifier, raw: "y" },
+        { type: TokenType.Identifier, raw: "z" },
     ];
-    const tokens = tokenize("  123x -  1.23 + x");
+    const tokens = tokenize("  123x -  1.23 + x / xyz");
     expect(tokens).toEqual(expected);
 });
 
@@ -31,14 +35,14 @@ test("Tokenize Extra", () => {
         { type: TokenType.Operator, raw: "-" },
         { type: TokenType.Number, raw: "456" },
         { type: TokenType.OpenParen, raw: "(" },
-        { type: TokenType.Variable, raw: "x" },
+        { type: TokenType.Identifier, raw: "x" },
         { type: TokenType.Operator, raw: "-" },
-        { type: TokenType.Variable, raw: "y" },
+        { type: TokenType.Identifier, raw: "y" },
         { type: TokenType.ClosedParen, raw: ")" },
         { type: TokenType.OpenParen, raw: "(" },
         { type: TokenType.Number, raw: "789" },
         { type: TokenType.Operator, raw: "*" },
-        { type: TokenType.Variable, raw: "z" },
+        { type: TokenType.Identifier, raw: "z" },
         { type: TokenType.ClosedParen, raw: ")" },
     ];
     const tokens = tokenize("-456(x - y)(789 * z)");
@@ -46,7 +50,7 @@ test("Tokenize Extra", () => {
 });
 
 test("Tokenize Invalid", () => {
-    const invalids = ["123_02384", "s$me.t@ing", "x % y", "something"]
+    const invalids = ["123_02384", "s$me.t@ing", "x % y"];
     for (const expression of invalids) {
         expect(() => tokenize(expression)).toThrow();
     }

@@ -2,7 +2,7 @@
 export enum TokenType {
     Number,
     Operator,
-    Variable,
+    Identifier,
     OpenParen,
     ClosedParen,
 }
@@ -72,9 +72,12 @@ export function tokenize(input: string): Token[] {
         }
 
         if (identifier.length > 0) {
-            if (identifier.length > 1) // We won't support functions for now
-                throw Error(`Invalid variable ${identifier}. Variables can only be 1 letter long`);
-            tokens.push({ type: TokenType.Variable, raw: identifier });
+            // NOTE: Variables can only be 1 letter long.
+            // We won't support functions for now
+            const characters = identifier.split("");
+            for (const char of characters) {
+                tokens.push({ type: TokenType.Identifier, raw: char });
+            }
             continue;
         }
 

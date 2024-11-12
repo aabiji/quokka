@@ -8,6 +8,8 @@ export interface Node {
 }
 
 /*
+TODO: what if we just inserted implied tokens??
+
 Some parsing rules:
 - A number immediately next to a variable should count as a multiplication.
   The other way around is an error.
