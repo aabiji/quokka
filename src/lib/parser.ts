@@ -2,10 +2,19 @@ import { TokenReader, TokenType, operatorInfo } from "./lexer.ts";
 
 // TODO: rewrite this entirely
 
+export enum NodeType {
+    BinaryOperator,
+    UnaryOperator,
+    Variable,
+    Constant
+}
+
+// TODO: add default values
 export interface Node {
-    data: any, // TODO: make this more defined
+    type: NodeType,
+    data: string | number,
     left: Node | undefined,
-    right: Node | undefined,
+    right: Node | undefined
 }
 
 // Parse a single node
@@ -14,7 +23,7 @@ function parseOperand(reader: TokenReader): Node | undefined {
     if (token === undefined)
         return undefined;
 
-    let node: Node = { data: undefined, left: undefined, right: undefined };
+    let node: Node = { data: 0, left: undefined, right: undefined };
 
     switch (token.type) {
         case TokenType.Number:
@@ -24,7 +33,7 @@ function parseOperand(reader: TokenReader): Node | undefined {
             node.data = token.raw;
             break;
         case TokenType.OpenParen:
-            node = prattParse(reader, 0); // Parse a new expression
+            node = parseBinaryOperator(reader, 0); // Parse a new expression
             const closing = reader.read();
             const raw = token === undefined ? "undefined" : token.raw;
             if (closing === undefined || closing.type != TokenType.ClosedParen)
@@ -38,7 +47,7 @@ function parseOperand(reader: TokenReader): Node | undefined {
     return node;
 }
 
-function prattParse(reader: TokenReader, currentPrecedence: number): Node | undefined {
+function parseBinaryOperator(reader: TokenReader, currentPrecedence: number): Node | undefined {
     let currentNode = parseOperand(reader); // Parse the left hand side
     if (currentNode == undefined) return undefined;
 
@@ -58,7 +67,7 @@ function prattParse(reader: TokenReader, currentPrecedence: number): Node | unde
         reader.read();
         currentNode = {
             left: currentNode,
-            right: prattParse(reader, next),
+            right: parseBinaryOperator(reader, next),
             data: token.raw
         };
     }
@@ -68,6 +77,6 @@ function prattParse(reader: TokenReader, currentPrecedence: number): Node | unde
 
 export function parse(expression: string): Node | undefined {
     const reader = new TokenReader(expression);
-    return prattParse(reader, 0);
+    return parseBinaryOperator(reader, 0);
 }
 
