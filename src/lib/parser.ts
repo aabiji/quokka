@@ -1,6 +1,4 @@
-import { TokenReader, TokenType, operatorInfo } from "./lexer.ts";
-
-// TODO: rewrite this entirely
+import { TokenReader, TokenType, Token, operatorInfo } from "./lexer.ts";
 
 export enum NodeType {
     BinaryOperator,
@@ -9,45 +7,88 @@ export enum NodeType {
     Constant
 }
 
-// TODO: add default values
 export interface Node {
     type: NodeType,
     data: string | number,
-    left: Node | undefined,
-    right: Node | undefined
+    left?: Node,
+    right?: Node,
 }
 
-// Parse a single node
-function parseOperand(reader: TokenReader): Node | undefined {
+type ParseOutput = Node | undefined;
+
+let insideParentheses = false; // TODO: this shouldn't be global
+let isUnary = (t: Token) => t.type == TokenType.Operator && (t.raw == '+' || t.raw == '-');
+
+function checkForErrors(reader: TokenReader, previous: Token) {
+    const next = reader.read(false);
+    if (next === undefined) return;
+
+    // Cannot not have a sequence of numbers without an operator
+    if (previous.type == TokenType.Number && next.type == TokenType.Number)
+        throw Error(`Invalid sequence: ${previous.raw} ${next.raw}`);
+
+    // Cannot have a number come after a variable
+    if (previous.type == TokenType.Identifier && next.type == TokenType.Number)
+        throw Error(`Invalid sequence: ${previous.raw} ${next.raw}`);
+
+    // Each closing parentheses needs a corresponding opening parentheses
+    if (!insideParentheses && next.type == TokenType.ClosedParen)
+        throw Error("Unexpected )");
+}
+
+function parseOperand(reader: TokenReader): ParseOutput {
     const token = reader.read();
     if (token === undefined)
         return undefined;
 
-    let node: Node = { data: 0, left: undefined, right: undefined };
+    let node: ParseOutput = { data: 0, type: NodeType.Constant };
 
-    switch (token.type) {
-        case TokenType.Number:
-            node.data = Number(token.raw);
-            break;
-        case TokenType.Identifier:
-            node.data = token.raw;
-            break;
-        case TokenType.OpenParen:
-            node = parseBinaryOperator(reader, 0); // Parse a new expression
-            const closing = reader.read();
-            const raw = token === undefined ? "undefined" : token.raw;
-            if (closing === undefined || closing.type != TokenType.ClosedParen)
-                throw Error(`Expecting a closing parentheses, found ${raw}`);
-            break;
-        default:
-            throw Error(`Expecting a number or opening parentheses, found ${token.raw}`);
+    if (token.type == TokenType.Number) {
+        node.data = Number(token.raw);
+        node.type = NodeType.Constant;
     }
 
-    // TODO: what if we just inserted implicit tokens???
+    else if (token.type == TokenType.Identifier) {
+        node.data = token.raw;
+        node.type = NodeType.Variable;
+    }
+
+    else if (token.type == TokenType.OpenParen) {
+        // Ignore empty parentheses
+        const peeked = reader.read(false);
+        if (peeked !== undefined && peeked.type == TokenType.ClosedParen) {
+            reader.read(); // Consume the closing parentheses
+            return undefined;
+        }
+
+        // Parse a new expression
+        insideParentheses = true;
+        node = prattParse(reader, 0);
+        insideParentheses = false;
+
+        // Parse the closing parentheses
+        const next = reader.read();
+        const ending = next === undefined ? "" : `, found ${next.raw}`;
+        if (next === undefined || next.type != TokenType.ClosedParen)
+            throw Error(`Expecting a closing parentheses${ending}`);
+    }
+
+    else if (isUnary(token)) {
+        node.data = token.raw;
+        node.type = NodeType.UnaryOperator;
+        node.left = parseOperand(reader);
+        if (node.left === undefined)
+            throw Error("Expecting operand found nothing");
+    }
+
+    else
+        throw Error(`Expected a number, variable or grouping, found ${token.raw}`);
+
+    checkForErrors(reader, token);
     return node;
 }
 
-function parseBinaryOperator(reader: TokenReader, currentPrecedence: number): Node | undefined {
+function prattParse(reader: TokenReader, currentPrecedence: number): ParseOutput {
     let currentNode = parseOperand(reader); // Parse the left hand side
     if (currentNode == undefined) return undefined;
 
@@ -55,28 +96,31 @@ function parseBinaryOperator(reader: TokenReader, currentPrecedence: number): No
     // We're treating the expression as a successive list of binary operators.
     while (true) {
         const token = reader.read(false);
-        if (token === undefined ||
-            token.type != TokenType.Operator ||
-            operatorInfo(token)[0] <= currentPrecedence)
+        if (token === undefined) break;
+        const [precedence, groupLeft] = operatorInfo(token);
+        if (token.type != TokenType.Operator || precedence <= currentPrecedence)
             break;
 
         // Adjust the precedence based on the operator associativity
-        const [precedence, groupLeft] = operatorInfo(token);
-        const next = groupLeft ? precedence : precedence - 1;
-
+        const nextPrecedence = groupLeft ? precedence : precedence - 1;
         reader.read();
         currentNode = {
+            data: token.raw,
+            type: NodeType.BinaryOperator,
             left: currentNode,
-            right: parseBinaryOperator(reader, next),
-            data: token.raw
+            right: prattParse(reader, nextPrecedence)
         };
     }
+
+    if (currentNode.type == NodeType.BinaryOperator &&
+        currentNode.right === undefined)
+        throw Error("No right operand found");
 
     return currentNode;
 }
 
-export function parse(expression: string): Node | undefined {
+export function parse(expression: string): ParseOutput {
     const reader = new TokenReader(expression);
-    return parseBinaryOperator(reader, 0);
+    return prattParse(reader, 0);
 }
 

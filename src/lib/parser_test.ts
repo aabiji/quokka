@@ -13,19 +13,21 @@ test("Test Precedence Parsing", () => {
                     data: "^", type: NodeType.BinaryOperator,
                     left: { type: NodeType.Constant, data: 34 },
                     right: { type: NodeType.Constant, data: 45 },
-                }
+                },
             },
-            right: { type: NodeType.Constant, data: 123 }
+            right: {
+                data: "/", type: NodeType.BinaryOperator,
+                left: { type: NodeType.Constant, data: 123 },
+                right: { type: NodeType.Constant, data: 789 }
+            }
         },
         right: {
-            data: "*", type: NodeType.BinaryOperator,
-            left: { type: NodeType.Variable, data: "x" },
-            right: { type: NodeType.Variable, data: "y" },
+            data: "+", type: NodeType.BinaryOperator,
+            left: { type: NodeType.Constant, data: 256 },
+            right: { type: NodeType.Constant, data: 652 }
         }
     }
-
-    // TODO: expecting binary operator parsing with precedence
-    const tree = parse("12 * 34^45 - 123 + xy");
+    const tree = parse("12 * 34^45 - 123 / 789 + (256 + 652)");
     expect(tree).toEqual(expected);
 });
 
@@ -39,19 +41,19 @@ test("Test Implicit Multiplication", () => {
                 left: {
                     type: NodeType.BinaryOperator, data: "*",
                     left: { type: NodeType.Constant, data: 123 },
-                    right: { type: NodeType.Variable, data: 'x' },
+                    right: { type: NodeType.Variable, data: "x" },
                 },
                 right: {
                     type: NodeType.BinaryOperator, data: "*",
-                    left: { type: NodeType.Variable, data: 'x' },
-                    right: { type: NodeType.Variable, data: 'z' },
+                    left: { type: NodeType.Variable, data: "x" },
+                    right: { type: NodeType.Variable, data: "z" },
                 }
             },
             right: {
                 type: NodeType.BinaryOperator, data: "*",
                 left: {
                     type: NodeType.BinaryOperator, data: "*",
-                    left: { type: NodeType.Variable, data: 'w' },
+                    left: { type: NodeType.Variable, data: "w" },
                     right: { type: NodeType.Constant, data: 123 },
                 },
                 right: { type: NodeType.Constant, data: 456 },
@@ -61,25 +63,24 @@ test("Test Implicit Multiplication", () => {
             type: NodeType.BinaryOperator, data: "*",
             left: {
                 type: NodeType.BinaryOperator, data: "+",
-                left: { type: NodeType.Variable, data: 'x' },
-                right: { type: NodeType.Variable, data: 'y' },
+                left: { type: NodeType.Variable, data: "x" },
+                right: { type: NodeType.Variable, data: "y" },
             },
             right: {
                 type: NodeType.BinaryOperator, data: "-",
-                left: { type: NodeType.Variable, data: 'x' },
-                right: { type: NodeType.Variable, data: 'y' },
+                left: { type: NodeType.Variable, data: "x" },
+                right: { type: NodeType.Variable, data: "y" },
             }
         }
     }
 
-    // TODO: expecting these to be multiplications
     const tree = parse("123x + xz + w(123)456 + (x + y)(x - y)");
     expect(tree).toEqual(expected);
 });
 
 test("Test Unary Parsing", () => {
     const expected: Node = {
-        type: NodeType.BinaryOperator, data: "*",
+        type: NodeType.BinaryOperator, data: "+",
         left: {
             type: NodeType.BinaryOperator, data: "*",
             left: {
@@ -88,21 +89,17 @@ test("Test Unary Parsing", () => {
             },
             right: {
                 type: NodeType.UnaryOperator, data: "-",
-                left: { type: NodeType.Variable, data: 'x' },
+                left: { type: NodeType.Variable, data: "x" },
             }
         },
-        right: {
-            type: NodeType.UnaryOperator, data: "+",
-            left: { type: NodeType.Constant, data: 123 },
-        }
+        right: { type: NodeType.Constant, data: 456 },
     }
-    // TODO: expecting unary operations to be parsed properly
-    const tree = parse("-123 * -x(+123)");
+    const tree = parse("-123 * -x + 456");
     expect(tree).toEqual(expected);
 });
 
 test("Test Invalid Expressions", () => {
-    const examples = ["123 123", "x123", "123 + + 456", "(x + y",
+    const examples = ["123 123", "x123", "123 +", "(x + y",
         "x + y)", "+", " * x"];
     for (const invalid of examples) {
         expect(() => parse(invalid)).toThrow();

@@ -7,7 +7,7 @@ export enum TokenType {
     ClosedParen,
 }
 
-interface Token {
+export interface Token {
     type: TokenType,
     raw: string,
 }
