@@ -78,13 +78,6 @@ function parseOperand(reader: TokenReader): ParseOutput {
     }
 
     else if (token.type == TokenType.OpenParen) {
-        // Ignore empty parentheses
-        const peeked = reader.read(false);
-        if (peeked !== undefined && peeked.type == TokenType.ClosedParen) {
-            reader.read(); // Consume the closing parentheses
-            return undefined;
-        }
-
         // Parse a new expression
         insideParentheses = true;
         node = prattParse(reader, 0);

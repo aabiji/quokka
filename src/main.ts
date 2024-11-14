@@ -1,13 +1,25 @@
+import { parse } from "./lib/parser.ts";
+
 function processMathInput(value: string) {
-    console.log(value);
+    const tree = parse(value);
+    const element = document.getElementById("debugInfo")!;
+    const content = tree === undefined ? "" : JSON.stringify(tree, null, 4);
+    element.textContent = content;
+}
+
+function handleInput(event: KeyboardEvent) {
+    const element = event.target as HTMLInputElement;
+    try {
+        processMathInput(element.value);
+        element.classList.remove("bad-input");
+    } catch (error) {
+        element.classList.add("bad-input");
+        document.getElementById("debugInfo")!.textContent = "";
+    }
 }
 
 window.onload = () => {
     const input = document.getElementsByTagName("input")[0];
-    input.onkeyup = (event) => {
-        if (event.key == "Enter") {
-            event.preventDefault();
-            processMathInput((event.target as HTMLInputElement).value);
-        }
-    }
+    input.value = "";
+    input.onkeyup = (event) => handleInput(event);
 }

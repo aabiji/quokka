@@ -4,3 +4,8 @@ input {
   font-size: 15px;
   padding: 10px 10px;
 }
+
+.bad-input, .bad-input:focus {
+  border-color: red;
+  outline: none;
+}

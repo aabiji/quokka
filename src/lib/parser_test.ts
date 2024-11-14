@@ -29,6 +29,7 @@ test("Test Precedence Parsing", () => {
     }
     const tree = parse("12 * 34^45 - 123 / 789 + (256 + 652)");
     expect(tree).toEqual(expected);
+    expect(parse("")).toBe(undefined);
 });
 
 test("Test Implicit Multiplication", () => {
@@ -100,13 +101,8 @@ test("Test Unary Parsing", () => {
 
 test("Test Invalid Expressions", () => {
     const examples = ["123 123", "x123", "123 +", "(x + y",
-        "x + y)", "+", " * x"];
+        "x + y)", "+", " * x", "()"];
     for (const invalid of examples) {
         expect(() => parse(invalid)).toThrow();
     }
-});
-
-test("Test Empty Expressions", () => {
-    expect(parse("")).toBe(undefined);
-    expect(parse("()")).toBe(undefined);
 });
