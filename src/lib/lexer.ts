@@ -106,5 +106,10 @@ export class TokenReader {
         if (advance && !eof) this.index++;
         return value;
     }
+
+    insert(token: Token) {
+        if (this.index >= this.tokens.length) return;
+        this.tokens.splice(this.index, 0, token);
+    }
 }
 
