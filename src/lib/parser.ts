@@ -9,7 +9,7 @@ export enum NodeType {
 
 export interface Node {
     type: NodeType,
-    data: string | number,
+    data?: any,
     left?: Node,
     right?: Node,
 }
@@ -17,7 +17,14 @@ export interface Node {
 type ParseOutput = Node | undefined;
 
 let insideParentheses = false; // TODO: this shouldn't be global
-let isUnary = (t: Token) => t.type == TokenType.Operator && (t.raw == '+' || t.raw == '-');
+
+const operations = {
+    '-': (x, y) => x - y,
+    '+': (x, y) => x + y,
+    '*': (x, y) => x * y,
+    '/': (x, y) => x / y,
+    '^': (x, y) => x ** y,
+}
 
 function checkForErrors(reader: TokenReader, previous: Token) {
     const next = reader.read(false);
@@ -65,6 +72,7 @@ function parseOperand(reader: TokenReader): ParseOutput {
     if (token === undefined)
         return undefined;
 
+    const isUnary = token.type == TokenType.Operator && (token.raw == '-' || token.raw == '+');
     let node: ParseOutput = { data: 0, type: NodeType.Constant };
 
     if (token.type == TokenType.Number) {
@@ -90,7 +98,7 @@ function parseOperand(reader: TokenReader): ParseOutput {
             throw Error(`Expecting a closing parentheses${ending}`);
     }
 
-    else if (isUnary(token)) {
+    else if (isUnary) {
         node.data = token.raw;
         node.type = NodeType.UnaryOperator;
         node.left = parseOperand(reader);
@@ -140,5 +148,36 @@ function prattParse(reader: TokenReader, currentPrecedence: number): ParseOutput
 export function parse(expression: string): ParseOutput {
     const reader = new TokenReader(expression);
     return prattParse(reader, 0);
+}
+
+// TODO; test this
+// TODO: if we have something like 'x + x + x' we should turn it into '3x'
+// TODO: now flatten the simplified parse tree into tokens in reverse polish notation
+//       so we can evaluate the entire expression in a single pass
+// Walk through the tree and fuse nodes we can already compute
+export function simplify(root: Node): Node {
+    if (root.type == NodeType.Constant || root.type == NodeType.Variable)
+        return root;
+
+    if (root.type == NodeType.UnaryOperator) {
+        const left = simplify(root.left!);
+        if (left.type == NodeType.Constant) {
+            const result = operations[root.data](0, left.data);
+            return { type: NodeType.Constant, data: result };
+        }
+        return { type: NodeType.UnaryOperator, data: root.data, left };
+    }
+
+    if (root.type == NodeType.BinaryOperator) {
+        const left = simplify(root.left!);
+        const right = simplify(root.right!);
+        if (left.type == NodeType.Constant && right.type == NodeType.Constant) {
+            const result = operations[root.data](left.data, right.data);
+            return { type: NodeType.Constant, data: result };
+        }
+        return { type: NodeType.BinaryOperator, data: root.data, left, right };
+    }
+
+    throw Error(`Invalid node: ${root}`);
 }
 

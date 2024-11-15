@@ -14,6 +14,7 @@ Implemetation outline:
 - Evaluator that'll evaluate our ast where it can
 - Plotter that'll sample the equation at discrete points and draw lines using those points
 - UI to enter expressions and render them in a nice way
+- TODO: support assignment
 
 - What is Desmos doing?
   - Converting your input into Latex
