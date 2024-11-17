@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { TokenType, tokenize } from "./lexer.ts";
 
-test("Tokenize Operators", () => {
+test("Tokenize operators", () => {
     const expected = [
         { type: TokenType.Operator, raw: "+" },
         { type: TokenType.Operator, raw: "-" },
@@ -13,7 +13,7 @@ test("Tokenize Operators", () => {
     expect(tokens).toEqual(expected);
 });
 
-test("Tokenize Values", () => {
+test("Tokenize values", () => {
     const expected = [
         { type: TokenType.Number, raw: "123" },
         { type: TokenType.Identifier, raw: "x" },
@@ -30,7 +30,7 @@ test("Tokenize Values", () => {
     expect(tokens).toEqual(expected);
 });
 
-test("Tokenize Extra", () => {
+test("Tokenize extra", () => {
     const expected = [
         { type: TokenType.Operator, raw: "-" },
         { type: TokenType.Number, raw: "456" },
@@ -49,7 +49,7 @@ test("Tokenize Extra", () => {
     expect(tokens).toEqual(expected);
 });
 
-test("Tokenize Invalid", () => {
+test("Tokenize invalid", () => {
     const invalids = ["123_02384", "s$me.t@ing", "x % y"];
     for (const expression of invalids) {
         expect(() => tokenize(expression)).toThrow();

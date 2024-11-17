@@ -1,4 +1,11 @@
-import { TokenReader, TokenType, Token, operatorInfo } from "./lexer.ts";
+import { TokenStream, TokenType, Token, operatorInfo } from "./lexer.ts";
+
+interface ParseContext {
+    stream: TokenStream,
+    insideParentheses: boolean,
+}
+
+type ParseOutput = Node | undefined;
 
 export enum NodeType {
     BinaryOperator,
@@ -14,10 +21,6 @@ export interface Node {
     right?: Node,
 }
 
-type ParseOutput = Node | undefined;
-
-let insideParentheses = false; // TODO: this shouldn't be global
-
 const operations = {
     '-': (x: number, y: number) => x - y,
     '+': (x: number, y: number) => x + y,
@@ -26,8 +29,8 @@ const operations = {
     '^': (x: number, y: number) => x ** y,
 }
 
-function checkForErrors(reader: TokenReader, previous: Token) {
-    const next = reader.read(false);
+function checkForErrors(context: ParseContext, previous: Token) {
+    const next = context.stream.read(false);
     if (next === undefined) return;
 
     // Cannot not have a sequence of numbers without an operator
@@ -40,12 +43,12 @@ function checkForErrors(reader: TokenReader, previous: Token) {
         throw Error(`Invalid sequence: ${previous.raw} ${next.raw}`);
 
     // Each closing parentheses needs a corresponding opening parentheses
-    if (!insideParentheses && next.type == TokenType.ClosedParen)
+    if (!context.insideParentheses && next.type == TokenType.ClosedParen)
         throw Error("Unexpected )");
 }
 
-function handleImplicitMultiplication(reader: TokenReader, token: Token) {
-    const next = reader.read(false);
+function handleImplicitMultiplication(context: ParseContext, token: Token) {
+    const next = context.stream.read(false);
     if (next === undefined) return;
 
     // We can define an implicit multiplication if our term is a number
@@ -65,12 +68,12 @@ function handleImplicitMultiplication(reader: TokenReader, token: Token) {
         // current position so that this token and subsequent tokens
         // are parsed as a multiplication. This way we can handle
         // multiplication even where there's no explicit operator
-        reader.insert({ type: TokenType.Operator, raw: "*" });
+        context.stream.insert({ type: TokenType.Operator, raw: "*" });
     }
 }
 
-function parseOperand(reader: TokenReader): ParseOutput {
-    const token = reader.read();
+function parseOperand(context: ParseContext): ParseOutput {
+    const token = context.stream.read();
     if (token === undefined)
         return undefined;
 
@@ -90,12 +93,12 @@ function parseOperand(reader: TokenReader): ParseOutput {
 
     else if (token.type == TokenType.OpenParen) {
         // Parse a new expression
-        insideParentheses = true;
-        node = prattParse(reader, 0);
-        insideParentheses = false;
+        context.insideParentheses = true;
+        node = prattParse(context, 0);
+        context.insideParentheses = false;
 
         // Parse the closing parentheses
-        const next = reader.read();
+        const next = context.stream.read();
         const ending = next === undefined ? "" : `, found ${next.raw}`;
         if (next === undefined || next.type != TokenType.ClosedParen)
             throw Error(`Expecting a closing parentheses${ending}`);
@@ -103,7 +106,7 @@ function parseOperand(reader: TokenReader): ParseOutput {
     else if (isUnary) {
         node.data = token.raw;
         node.type = NodeType.UnaryOperator;
-        node.left = parseOperand(reader);
+        node.left = parseOperand(context);
         if (node.left === undefined)
             throw Error("Expecting operand found nothing");
     }
@@ -113,22 +116,20 @@ function parseOperand(reader: TokenReader): ParseOutput {
             `Expected a number, variable or grouping, found ${token.raw}`
         );
 
-    checkForErrors(reader, token);
-    handleImplicitMultiplication(reader, token);
+    checkForErrors(context, token);
+    handleImplicitMultiplication(context, token);
     return node;
 }
 
-function prattParse(
-    reader: TokenReader,
-    currentPrecedence: number
-): ParseOutput {
-    let currentNode = parseOperand(reader); // Parse the left hand side
+function prattParse(context: ParseContext, currentPrecedence: number): ParseOutput {
+    // Parse the left hand side
+    let currentNode = parseOperand(context);
     if (currentNode == undefined) return undefined;
 
     // Build the parse tree by accumulating nodes on the right hand side.
     // We're treating the expression as a successive list of binary operators.
     while (true) {
-        const token = reader.read(false);
+        const token = context.stream.read(false);
         if (token === undefined) break;
         const [precedence, groupLeft] = operatorInfo(token);
         if (token.type != TokenType.Operator ||
@@ -137,12 +138,12 @@ function prattParse(
 
         // Adjust the precedence based on the operator associativity
         const nextPrecedence = groupLeft ? precedence : precedence - 1;
-        reader.read();
+        context.stream.read();
         currentNode = {
             data: token.raw,
             type: NodeType.BinaryOperator,
             left: currentNode,
-            right: prattParse(reader, nextPrecedence)
+            right: prattParse(context, nextPrecedence)
         };
     }
 
@@ -246,9 +247,11 @@ function reduce(root: Node): Node {
 }
 
 export function parse(expression: string, canReduce: boolean): ParseOutput {
-    const reader = new TokenReader(expression);
-    let tree = prattParse(reader, 0);
-    if (tree === undefined) return undefined;
-    return canReduce ? reduce(tree) : tree;
+    const context = {
+        stream: new TokenStream(expression),
+        insideParentheses: false
+    };
+    const tree = prattParse(context, 0);
+    return canReduce && tree !== undefined ? reduce(tree) : tree;
 }
 

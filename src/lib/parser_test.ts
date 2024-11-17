@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { NodeType, Node, parse } from "./parser.ts";
 
-test("Test Precedence Parsing", () => {
+test("Test precedence", () => {
     const expected: Node = {
         data: "+", type: NodeType.BinaryOperator,
         left: {
@@ -32,7 +32,7 @@ test("Test Precedence Parsing", () => {
     expect(parse("", false)).toBe(undefined);
 });
 
-test("Test Implicit Multiplication", () => {
+test("Test implicit multiplication", () => {
     const expected: Node = {
         type: NodeType.BinaryOperator, data: "+",
         left: {
@@ -79,7 +79,7 @@ test("Test Implicit Multiplication", () => {
     expect(tree).toEqual(expected);
 });
 
-test("Test Unary Parsing", () => {
+test("Test unary", () => {
     const expected: Node = {
         type: NodeType.BinaryOperator, data: "+",
         left: {
@@ -99,7 +99,7 @@ test("Test Unary Parsing", () => {
     expect(tree).toEqual(expected);
 });
 
-test("Test Reducing Variable Expression", () => {
+test("Test reducing variables", () => {
     const expected = [
         {
             type: NodeType.BinaryOperator, data: "*",
@@ -124,13 +124,13 @@ test("Test Reducing Variable Expression", () => {
     }
 });
 
-test("Test Reducing Numeric Expression", () => {
+test("Test reducing numbers", () => {
     const expected: Node = { type: NodeType.Constant, data: 20008 };
     const tree = parse("(12 + 34 * 56 / 2 ^ 2) * 123 / 3", true);
     expect(tree).toEqual(expected);
 });
 
-test("Test Invalid Expressions", () => {
+test("Test invalid expressions", () => {
     const examples = ["123 123", "x123", "123 +", "(x + y",
         "x + y)", "+", " * x", "()"];
     for (const invalid of examples) {

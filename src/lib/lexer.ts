@@ -91,7 +91,7 @@ export function tokenize(input: string): Token[] {
     return tokens;
 }
 
-export class TokenReader {
+export class TokenStream {
     tokens: Token[];
     index: number;
 
