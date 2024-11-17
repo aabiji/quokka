@@ -1,11 +1,5 @@
 import { TokenReader, TokenType, Token, operatorInfo } from "./lexer.ts";
 
-// TODO; test parsing with simplifcation
-// TODO: if we have something like 'x + x + x' we should turn it into '3x'
-//       so the tree isn't as skewed
-// TODO: faltten the simplified tree into a list of operations
-//       so we can evaluate the entire expression in a single pass
-
 export enum NodeType {
     BinaryOperator,
     UnaryOperator,
@@ -41,7 +35,8 @@ function checkForErrors(reader: TokenReader, previous: Token) {
         throw Error(`Invalid sequence: ${previous.raw} ${next.raw}`);
 
     // Cannot have a number come after a variable
-    if (previous.type == TokenType.Identifier && next.type == TokenType.Number)
+    if (previous.type == TokenType.Identifier &&
+        next.type == TokenType.Number)
         throw Error(`Invalid sequence: ${previous.raw} ${next.raw}`);
 
     // Each closing parentheses needs a corresponding opening parentheses
@@ -60,7 +55,8 @@ function handleImplicitMultiplication(reader: TokenReader, token: Token) {
     // Every other possibility is an error
     const [t, n] = [token.type, next.type];
     const validTerm = t == TokenType.Number || t == TokenType.Identifier;
-    const validCoefficient = n == TokenType.Identifier || n == TokenType.OpenParen;
+    const validCoefficient =
+        n == TokenType.Identifier || n == TokenType.OpenParen;
     const isGrouping = t == TokenType.OpenParen;
 
     if ((validTerm && validCoefficient) ||
@@ -78,7 +74,8 @@ function parseOperand(reader: TokenReader): ParseOutput {
     if (token === undefined)
         return undefined;
 
-    const isUnary = token.type == TokenType.Operator && (token.raw == '-' || token.raw == '+');
+    const isUnary = token.type == TokenType.Operator &&
+        (token.raw == '-' || token.raw == '+');
     let node: ParseOutput = { data: 0, type: NodeType.Constant };
 
     if (token.type == TokenType.Number) {
@@ -112,14 +109,19 @@ function parseOperand(reader: TokenReader): ParseOutput {
     }
 
     else
-        throw Error(`Expected a number, variable or grouping, found ${token.raw}`);
+        throw Error(
+            `Expected a number, variable or grouping, found ${token.raw}`
+        );
 
     checkForErrors(reader, token);
     handleImplicitMultiplication(reader, token);
     return node;
 }
 
-function prattParse(reader: TokenReader, currentPrecedence: number): ParseOutput {
+function prattParse(
+    reader: TokenReader,
+    currentPrecedence: number
+): ParseOutput {
     let currentNode = parseOperand(reader); // Parse the left hand side
     if (currentNode == undefined) return undefined;
 
@@ -129,7 +131,8 @@ function prattParse(reader: TokenReader, currentPrecedence: number): ParseOutput
         const token = reader.read(false);
         if (token === undefined) break;
         const [precedence, groupLeft] = operatorInfo(token);
-        if (token.type != TokenType.Operator || precedence <= currentPrecedence)
+        if (token.type != TokenType.Operator ||
+            precedence <= currentPrecedence)
             break;
 
         // Adjust the precedence based on the operator associativity
@@ -150,39 +153,102 @@ function prattParse(reader: TokenReader, currentPrecedence: number): ParseOutput
     return currentNode;
 }
 
-// Walk through the tree and fuse nodes we can already compute
-export function simplify(root: Node): Node {
+// Simplify repeating binary operators that have identical operands
+// or are partially reducible. Ex: x + x + x + x should be reduced to 4 * x
+function reduceRepeating(
+    left: Node, right: Node,
+    targetOperator: string
+): ParseOutput {
+    const equal = (a: Node, b: Node) =>
+        JSON.stringify(a) === JSON.stringify(b);
+
+    // Simplify identical operands (ex: x + x => 2 * x)
+    if (equal(left, right)) {
+        return {
+            type: NodeType.BinaryOperator,
+            data: targetOperator, right,
+            left: { type: NodeType.Constant, data: 2 },
+        }
+    }
+
+    // The left hand side needs to be an expression
+    if (left.type == NodeType.Constant || left.type == NodeType.Variable)
+        return undefined;
+
+    // Combine factors with identical terms (ex: 2x + x => 3x)
+    const operand = left.right!;
+    const coefficient = left.left!.data;
+    if (left.data == targetOperator && equal(operand, right)) {
+        return {
+            type: NodeType.BinaryOperator,
+            data: targetOperator, right,
+            left: { type: NodeType.Constant, data: coefficient + 1 }
+        };
+    }
+
+    return undefined; // Can't reduce
+}
+
+// Walk through the tree and evaluate nodes we can already
+// evaluate. Also try to simplify expressions we can't
+// directly evaluate. We do this to avoid having a deeply
+// nested parse tree and to make it easier to evaluate it.
+function reduce(root: Node): Node {
     if (root.type == NodeType.Constant || root.type == NodeType.Variable)
         return root;
 
     const key = root.data as keyof typeof operations;
 
     if (root.type == NodeType.UnaryOperator) {
-        const left = simplify(root.left!);
+        const left = reduce(root.left!);
+
+        // Apply the unary operator if we can
         if (left.type == NodeType.Constant) {
-            const result = operations[key](0, left.data);
-            return { type: NodeType.Constant, data: result };
+            const data = operations[key](0, left.data);
+            return { type: NodeType.Constant, data };
         }
+
+        // Return the simplified node as is
         return { type: NodeType.UnaryOperator, data: root.data, left };
     }
 
     if (root.type == NodeType.BinaryOperator) {
-        const left = simplify(root.left!);
-        const right = simplify(root.right!);
-        if (left.type == NodeType.Constant && right.type == NodeType.Constant) {
-            const result = operations[key](left.data, right.data);
-            return { type: NodeType.Constant, data: result };
+        const left = reduce(root.left!);
+        const right = reduce(root.right!);
+
+        // Apply the binary operator directly if we can
+        if (left.type == NodeType.Constant &&
+            right.type == NodeType.Constant) {
+            const data = operations[key](left.data, right.data);
+            return { type: NodeType.Constant, data };
         }
-        return { type: NodeType.BinaryOperator, data: root.data, left, right };
+
+        // Repeating addition reduces to multiplication
+        if (root.data == '+') {
+            const node = reduceRepeating(left, right, '*');
+            if (node != undefined) return node;
+        }
+
+        // Repeating multiplication reduces to exponentiation
+        if (root.data == '*') {
+            const node = reduceRepeating(left, right, '^');
+            if (node != undefined) return node;
+        }
+
+        // Return the simplified node as is
+        return {
+            type: NodeType.BinaryOperator,
+            data: root.data, left, right
+        };
     }
 
     throw Error(`Invalid node: ${root}`);
 }
 
-export function parse(expression: string, shouldSimplify: boolean): ParseOutput {
+export function parse(expression: string, canReduce: boolean): ParseOutput {
     const reader = new TokenReader(expression);
     let tree = prattParse(reader, 0);
     if (tree === undefined) return undefined;
-    return shouldSimplify ? simplify(tree) : tree;
+    return canReduce ? reduce(tree) : tree;
 }
 

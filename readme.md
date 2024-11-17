@@ -38,6 +38,7 @@ Nice to have features:
 - What if in our readme we had a screenshot of the app's name being graphed???
   (drawing cursive text using math equations!)
 - Extremely fast and extremely accurate computation
+  - Simplify the parse tree better
 - Support diverse equations:
     - Quadratic and cubic equations
     - Absolute value equations

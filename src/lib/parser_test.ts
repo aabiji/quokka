@@ -99,6 +99,37 @@ test("Test Unary Parsing", () => {
     expect(tree).toEqual(expected);
 });
 
+test("Test Reducing Variable Expression", () => {
+    const expected = [
+        {
+            type: NodeType.BinaryOperator, data: "*",
+            left: { type: NodeType.Constant, data: 4 },
+            right: { type: NodeType.Variable, data: 'x' }
+        },
+        {
+            type: NodeType.BinaryOperator, data: "^",
+            left: { type: NodeType.Constant, data: 4 },
+            right: { type: NodeType.Variable, data: 'x' }
+        },
+        {
+            type: NodeType.BinaryOperator, data: "*",
+            left: { type: NodeType.Constant, data: 5 },
+            right: { type: NodeType.Variable, data: "x" }
+        },
+    ];
+    const expressions = ["x + x + x + x", "x * x * x * x", "3 * x + x + x"];
+    for (let i = 0; i < 3; i++) {
+        const tree = parse(expressions[i], true);
+        expect(tree).toEqual(expected[i]);
+    }
+});
+
+test("Test Reducing Numeric Expression", () => {
+    const expected: Node = { type: NodeType.Constant, data: 20008 };
+    const tree = parse("(12 + 34 * 56 / 2 ^ 2) * 123 / 3", true);
+    expect(tree).toEqual(expected);
+});
+
 test("Test Invalid Expressions", () => {
     const examples = ["123 123", "x123", "123 +", "(x + y",
         "x + y)", "+", " * x", "()"];
