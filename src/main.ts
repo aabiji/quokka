@@ -1,7 +1,7 @@
 import { parse } from "./lib/parser.ts";
 
 function processMathInput(value: string) {
-    const tree = parse(value);
+    const tree = parse(value, true);
     const element = document.getElementById("debugInfo")!;
     const content = tree === undefined ? "" : JSON.stringify(tree, null, 4);
     element.textContent = content;

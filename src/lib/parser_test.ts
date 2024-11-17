@@ -27,9 +27,9 @@ test("Test Precedence Parsing", () => {
             right: { type: NodeType.Constant, data: 652 }
         }
     }
-    const tree = parse("12 * 34^45 - 123 / 789 + (256 + 652)");
+    const tree = parse("12 * 34^45 - 123 / 789 + (256 + 652)", false);
     expect(tree).toEqual(expected);
-    expect(parse("")).toBe(undefined);
+    expect(parse("", false)).toBe(undefined);
 });
 
 test("Test Implicit Multiplication", () => {
@@ -75,7 +75,7 @@ test("Test Implicit Multiplication", () => {
         }
     }
 
-    const tree = parse("123x + xz + w(123)456 + (x + y)(x - y)");
+    const tree = parse("123x + xz + w(123)456 + (x + y)(x - y)", false);
     expect(tree).toEqual(expected);
 });
 
@@ -95,7 +95,7 @@ test("Test Unary Parsing", () => {
         },
         right: { type: NodeType.Constant, data: 456 },
     }
-    const tree = parse("-123 * -x + 456");
+    const tree = parse("-123 * -x + 456", false);
     expect(tree).toEqual(expected);
 });
 
@@ -103,6 +103,6 @@ test("Test Invalid Expressions", () => {
     const examples = ["123 123", "x123", "123 +", "(x + y",
         "x + y)", "+", " * x", "()"];
     for (const invalid of examples) {
-        expect(() => parse(invalid)).toThrow();
+        expect(() => parse(invalid, false)).toThrow();
     }
 });
