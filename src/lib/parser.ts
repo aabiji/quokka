@@ -21,7 +21,8 @@ export interface Node {
     right?: Node,
 }
 
-const operations = {
+type Operator = (x: number, y: number) => number;
+export const Operations: Record<string, Operator> = {
     '-': (x: number, y: number) => x - y,
     '+': (x: number, y: number) => x + y,
     '*': (x: number, y: number) => x * y,
@@ -34,7 +35,8 @@ function checkForErrors(context: ParseContext, previous: Token) {
     if (next === undefined) return;
 
     // Cannot not have a sequence of numbers without an operator
-    if (previous.type == TokenType.Number && next.type == TokenType.Number)
+    if (previous.type == TokenType.Number &&
+        next.type == TokenType.Number)
         throw Error(`Invalid sequence: ${previous.raw} ${next.raw}`);
 
     // Cannot have a number come after a variable
@@ -47,7 +49,10 @@ function checkForErrors(context: ParseContext, previous: Token) {
         throw Error("Unexpected )");
 }
 
-function handleImplicitMultiplication(context: ParseContext, token: Token) {
+function handleImplicitMultiplication(
+    context: ParseContext,
+    token: Token
+) {
     const next = context.stream.read(false);
     if (next === undefined) return;
 
@@ -121,7 +126,10 @@ function parseOperand(context: ParseContext): ParseOutput {
     return node;
 }
 
-function prattParse(context: ParseContext, currentPrecedence: number): ParseOutput {
+function prattParse(
+    context: ParseContext,
+    currentPrecedence: number
+): ParseOutput {
     // Parse the left hand side
     let currentNode = parseOperand(context);
     if (currentNode == undefined) return undefined;
@@ -198,14 +206,12 @@ function reduce(root: Node): Node {
     if (root.type == NodeType.Constant || root.type == NodeType.Variable)
         return root;
 
-    const key = root.data as keyof typeof operations;
-
     if (root.type == NodeType.UnaryOperator) {
         const left = reduce(root.left!);
 
         // Apply the unary operator if we can
         if (left.type == NodeType.Constant) {
-            const data = operations[key](0, left.data);
+            const data = Operations[root.data](0, left.data);
             return { type: NodeType.Constant, data };
         }
 
@@ -220,7 +226,7 @@ function reduce(root: Node): Node {
         // Apply the binary operator directly if we can
         if (left.type == NodeType.Constant &&
             right.type == NodeType.Constant) {
-            const data = operations[key](left.data, right.data);
+            const data = Operations[root.data](left.data, right.data);
             return { type: NodeType.Constant, data };
         }
 
@@ -246,7 +252,10 @@ function reduce(root: Node): Node {
     throw Error(`Invalid node: ${root}`);
 }
 
-export function parse(expression: string, canReduce: boolean): ParseOutput {
+export function parse(
+    expression: string,
+    canReduce: boolean
+): ParseOutput {
     const context = {
         stream: new TokenStream(expression),
         insideParentheses: false
