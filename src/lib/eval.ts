@@ -33,49 +33,56 @@ function flatten(node: Node, table: LookupTable): Value[] {
     return values;
 }
 
-export function processExpression(
-    expression: string
-): [Value[], LookupTable] | undefined {
-    const tree = parse(expression, true);
-    if (tree === undefined) return undefined;
-
-    let table: LookupTable = {};
-    const values = flatten(tree, table);
-    return [values, table];
+export class EmptyExpression extends Error {
+    constructor() {
+        super();
+        this.message = "Empty expression. Nothing to evaluate";
+    }
 }
 
-// Evaluate the expression in a single pass
-export function evaluateExpression(
-    values: Value[],
-    table: LookupTable
-): number {
-    // Return the answer if it's already been evaluated
-    if (values.length == 1) return values[0] as number;
+export class Expression {
+    values: Value[] = [];
+    variables: LookupTable = {};
 
-    const lookup = (v: string): number => {
-        if (table[v] === undefined)
+    constructor(expression: string) {
+        const tree = parse(expression, true);
+        if (tree === undefined) throw new EmptyExpression();
+        this.values = flatten(tree, this.variables);
+        console.log(this.values);
+    }
+
+    private lookup(v: string): number {
+        if (this.variables[v] === undefined)
             throw Error(`Unknown variable ${v}`);
-        return table[v];
-    };
+        return this.variables[v];
+    }
 
-    let stack = [];
-    for (const value of values) {
-        // Push operand on the stack
-        if (!isOperator(value)) {
-            stack.push(value);
-            continue;
+    // Evaluate the expression in a single pass
+    evaluate(): number {
+        // Return the answer if it's already been evaluated
+        if (this.values.length == 1) {
+            const v = this.values[0];
+            return typeof v === "string" ? this.lookup(v) : v as number;
         }
 
-        let rawRight = stack.pop()!;
-        let rawLeft = stack.pop();
-        if (rawLeft === undefined)
-            rawLeft = 0; // Since it must be an unary operator
+        let stack = [];
+        for (const value of this.values) {
+            // Push operand on the stack
+            if (!isOperator(value)) {
+                stack.push(value);
+                continue;
+            }
 
-        const a = typeof rawLeft === "string" ? lookup(rawLeft) : rawLeft;
-        const b = typeof rawRight === "string" ? lookup(rawRight) : rawRight;
-        const newOperand = Operations[value](a, b);
-        stack.push(newOperand);
+            let right = stack.pop()!;
+            let left = stack.pop();
+            if (left === undefined)
+                left = 0; // Since it must be an unary operator
+
+            const a = typeof left === "string" ? this.lookup(left) : left;
+            const b = typeof right === "string" ? this.lookup(right) : right;
+            const newOperand = Operations[value](a, b);
+            stack.push(newOperand);
+        }
+        return stack[0] as number;
     }
-    return stack[0] as number;
 }
-

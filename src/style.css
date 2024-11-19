@@ -1,11 +1,16 @@
 
 input {
-  width: 300px;
-  font-size: 15px;
-  padding: 10px 10px;
+    width: 380px;
+    font-size: 15px;
+    padding: 10px 10px;
 }
 
 .bad-input, .bad-input:focus {
-  border-color: red;
-  outline: none;
+    border-color: red;
+    outline: none;
+}
+
+canvas {
+    float: right;
+    border: 1px solid #bfbfbf;
 }
