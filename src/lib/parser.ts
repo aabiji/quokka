@@ -165,7 +165,9 @@ function prattParse(
 // Simplify repeating binary operators that have identical operands
 // or are partially reducible. Ex: x + x + x + x should be reduced to 4 * x
 function reduceRepeating(
-    left: Node, right: Node,
+    left: Node,
+    right: Node,
+    originalOperator: string,
     targetOperator: string
 ): ParseOutput {
     const equal = (a: Node, b: Node) =>
@@ -175,8 +177,8 @@ function reduceRepeating(
     if (equal(left, right)) {
         return {
             type: NodeType.BinaryOperator,
-            data: targetOperator, right,
-            left: { type: NodeType.Constant, data: 2 },
+            data: targetOperator, left: right,
+            right: { type: NodeType.Constant, data: 2 },
         }
     }
 
@@ -185,14 +187,24 @@ function reduceRepeating(
         return undefined;
 
     // Combine factors with identical terms (ex: 2x + x => 3x)
-    const operand = left.right!;
-    const coefficient = left.left!.data;
+    const operand = left.left!;
+    const coefficient = left.right!.data;
     if (left.data == targetOperator && equal(operand, right)) {
         return {
             type: NodeType.BinaryOperator,
-            data: targetOperator, right,
-            left: { type: NodeType.Constant, data: coefficient + 1 }
+            data: targetOperator, left: right,
+            right: { type: NodeType.Constant, data: coefficient + 1 }
         };
+    }
+
+    // Combine the last term of an expression with an identical
+    // term. (ex: 3x + x + x => 3x + 2x)
+    if (equal(left.right!, right) && left.data == originalOperator) {
+        left.right = {
+            type: NodeType.BinaryOperator, data: targetOperator,
+            left: right, right: { type: NodeType.Constant, data: 2 }
+        };
+        return left;
     }
 
     return undefined; // Can't reduce
@@ -232,13 +244,13 @@ function reduce(root: Node): Node {
 
         // Repeating addition reduces to multiplication
         if (root.data == '+') {
-            const node = reduceRepeating(left, right, '*');
+            const node = reduceRepeating(left, right, '+', '*');
             if (node != undefined) return node;
         }
 
         // Repeating multiplication reduces to exponentiation
         if (root.data == '*') {
-            const node = reduceRepeating(left, right, '^');
+            const node = reduceRepeating(left, right, '*', '^');
             if (node != undefined) return node;
         }
 

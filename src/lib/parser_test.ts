@@ -103,22 +103,35 @@ test("Test reducing variables", () => {
     const expected = [
         {
             type: NodeType.BinaryOperator, data: "*",
-            left: { type: NodeType.Constant, data: 4 },
-            right: { type: NodeType.Variable, data: 'x' }
+            left: { type: NodeType.Variable, data: 'x' },
+            right: { type: NodeType.Constant, data: 4 }
         },
         {
             type: NodeType.BinaryOperator, data: "^",
-            left: { type: NodeType.Constant, data: 4 },
-            right: { type: NodeType.Variable, data: 'x' }
+            left: { type: NodeType.Variable, data: 'x' },
+            right: { type: NodeType.Constant, data: 4 },
+        },
+        { // TODO: reduce this to 5x
+            type: NodeType.BinaryOperator, data: "+",
+            left: {
+                type: NodeType.BinaryOperator, data: "*",
+                left: { type: NodeType.Constant, data: 3 },
+                right: { type: NodeType.Variable, data: "x" }
+            },
+            right: {
+                type: NodeType.BinaryOperator, data: "*",
+                left: { type: NodeType.Variable, data: "x" },
+                right: { type: NodeType.Constant, data: 2 }
+            }
         },
         {
-            type: NodeType.BinaryOperator, data: "*",
-            left: { type: NodeType.Constant, data: 5 },
-            right: { type: NodeType.Variable, data: "x" }
-        },
+            type: NodeType.BinaryOperator, data: "^",
+            left: { type: NodeType.Variable, data: "x" },
+            right: { type: NodeType.Constant, data: 2 }
+        }
     ];
     const expressions = ["x + x + x + x", "x * x * x * x", "3 * x + x + x"];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < expressions.length; i++) {
         const tree = parse(expressions[i], true);
         expect(tree).toEqual(expected[i]);
     }

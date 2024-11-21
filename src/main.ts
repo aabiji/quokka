@@ -42,8 +42,11 @@ function graphExpression(ctx: CanvasRenderingContext2D, expression: Expression) 
         const ypos = h / 2 - y * gap;
 
         // TODO: maybe we tweak startX and endX so that we don't have to do this
-        if (xpos < 0 || ypos < 0 || xpos > w || ypos > h)
+        if (xpos < 0 || ypos < 0 || xpos > w || ypos > h) {
+            previousX = xpos;
+            previousY = ypos;
             continue; // Not visible
+        }
 
         ctx.beginPath();
         ctx.moveTo(xpos, ypos);

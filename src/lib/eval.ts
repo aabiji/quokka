@@ -48,7 +48,6 @@ export class Expression {
         const tree = parse(expression, true);
         if (tree === undefined) throw new EmptyExpression();
         this.values = flatten(tree, this.variables);
-        console.log(this.values);
     }
 
     private lookup(v: string): number {
