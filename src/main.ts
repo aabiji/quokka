@@ -1,56 +1,5 @@
+import { Canvas } from "./canvas.ts";
 import { Expression } from "./lib/eval.ts";
-
-class Canvas {
-    width: number;
-    height: number;
-    centerX: number;
-    centerY: number;
-    ctx: CanvasRenderingContext2D;
-
-    constructor(element: HTMLCanvasElement, width: number, height: number) {
-        this.width = width * window.devicePixelRatio;
-        this.height = height * window.devicePixelRatio;
-        this.centerX = this.width / 2;
-        this.centerY = this.height / 2;
-
-        element.width = this.width;
-        element.height = this.height;
-        element.style.width = `${width}px`;
-        element.style.height = `${height}px`;
-        this.ctx = element.getContext("2d")!;
-    }
-
-    clear() {
-        this.ctx.clearRect(0, 0, this.width, this.height);
-    }
-
-    drawLine(
-        x1: number, y1: number, x2: number,
-        y2: number, color: string, thickness: number
-    ) {
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = thickness;
-        this.ctx.beginPath();
-        this.ctx.moveTo(x1, y1);
-        this.ctx.lineTo(x2, y2);
-        this.ctx.stroke();
-    }
-
-    drawSquare(x: number, y: number, size: number, color: string) {
-        this.ctx.lineWidth = 1;
-        this.ctx.strokeStyle = color;
-        this.ctx.beginPath();
-        this.ctx.rect(x, y, size, size);
-        this.ctx.stroke();
-    }
-
-    drawText(text: string, x: number, y: number, color: string, size: number) {
-        this.ctx.font = `normal normal ${size}px Arial`;
-        this.ctx.textAlign = "center";
-        this.ctx.fillStyle = color;
-        this.ctx.fillText(text, x, y);
-    }
-}
 
 const size = 45; // tile size
 let expressions: Expression[] = [];
@@ -72,17 +21,17 @@ function renderGraph(canvas: Canvas) {
             // axis and left and right of the vertical axis
             const [left, right] = [cx - x * size, cx + x * size];
             const [top, bottom] = [cy - y * size, cy + y * size];
-            canvas.drawSquare(left, top, size, gray);
-            canvas.drawSquare(right, top, size, gray);
-            canvas.drawSquare(right, bottom, size, gray);
-            canvas.drawSquare(left, bottom, size, gray);
+            canvas.drawRect(left, top, size, size, gray);
+            canvas.drawRect(right, top, size, size, gray);
+            canvas.drawRect(right, bottom, size, size, gray);
+            canvas.drawRect(left, bottom, size, size, gray);
 
             // Draw the horizantal and vertical axis labels
             if (x != numTilesX - 1 && y != numTilesY - 1 && x != 0 && y != 0) {
-                canvas.drawText(`${x}`, right, cy + 15, black, 15);
-                canvas.drawText(`-${x}`, left, cy + 15, black, 15);
-                canvas.drawText(`${y}`, cx + 8, top + 5, black, 15);
-                canvas.drawText(`-${y}`, cx + 8, bottom + 5, black, 15);
+                canvas.drawText(`${x}`, right - 10, cy, 15);
+                canvas.drawText(`-${x}`, left - 10, cy, 15);
+                canvas.drawText(`${y}`, cx + 8, top - 25, 15);
+                canvas.drawText(`-${y}`, cx + 8, bottom - 25, 15);
             }
         }
     }
@@ -168,8 +117,8 @@ function handleScroll(event: WheelEvent) {
 }
 
 window.onload = () => {
-    const canvasElement = document.getElementById("graph")!;
-    const canvas = new Canvas(canvasElement as HTMLCanvasElement, 1100, 700);
+    const canvasElement = document.getElementsByTagName("canvas")[0]!;
+    const canvas = new Canvas(canvasElement, 1100, 700);
     canvasElement.onwheel = (event) => handleScroll(event);
 
     const button = document.getElementById("add")!;
