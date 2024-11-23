@@ -1,5 +1,20 @@
 
-input {
+.content {
+    display: flex;
+}
+
+.sidebar button {
+    display: block;
+    padding: 10px 10px;
+}
+
+#expressions {
+    max-height: 92vh;
+    width: fit-content;
+    overflow: scroll;
+}
+
+#expressions input {
     width: 380px;
     font-size: 15px;
     padding: 10px 10px;
@@ -10,7 +25,6 @@ input {
     outline: none;
 }
 
-canvas {
-    float: right;
+#graph {
     border: 1px solid #bfbfbf;
 }

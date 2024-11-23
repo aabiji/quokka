@@ -1,4 +1,4 @@
-import { Expression, EmptyExpression } from "./lib/eval.ts";
+import { Expression } from "./lib/eval.ts";
 
 class Canvas {
     width: number;
@@ -53,7 +53,7 @@ class Canvas {
 }
 
 const size = 45; // tile size
-let zoom = 1.0; // TODO; render the expression at different zoom levels
+let expressions: Expression[] = [];
 
 function renderGraph(canvas: Canvas) {
     canvas.clear();
@@ -92,6 +92,7 @@ function renderGraph(canvas: Canvas) {
     canvas.drawLine(0, cy, canvas.width, cy, black, 2);
 }
 
+// TODO: draw a smooth line through our set of points
 function graphExpression(canvas: Canvas, expression: Expression) {
     const [cx, cy] = [canvas.centerX, canvas.centerY];
     const numTilesX = Math.ceil(canvas.centerX / size) + 1;
@@ -127,19 +128,41 @@ function graphExpression(canvas: Canvas, expression: Expression) {
     }
 }
 
-function handleInput(canvas: Canvas, event: KeyboardEvent) {
-    const element = event.target as HTMLInputElement;
-    try {
-        renderGraph(canvas);
-        graphExpression(canvas, new Expression(element.value));
-        element.classList.remove("bad-input");
-    } catch (error) {
-        if (!(error instanceof EmptyExpression))
-            element.classList.add("bad-input");
+function renderExpressions(canvas: Canvas) {
+    renderGraph(canvas);
+    // TODO: expressions should be different colors
+    for (const expression of expressions) {
+        if (expression.values.length == 0)
+            continue; // Empty expression
+        graphExpression(canvas, expression);
     }
 }
 
+function handleInput(event: KeyboardEvent, canvas: Canvas) {
+    const element = event.target as HTMLInputElement;
+    const index = Number(element.id);
+    try {
+        expressions[index] = new Expression(element.value);
+        element.classList.remove("bad-input");
+        // TODO: make this faster. we're rerendering the whole graph and all the
+        //       expressions on every keystroke. can we be more efficient?
+        renderExpressions(canvas);
+    } catch (error) {
+        element.classList.add("bad-input");
+    }
+}
+
+function addInputExpression(canvas: Canvas) {
+    const list = document.getElementById("expressions")!;
+    const newInput = document.createElement("input");
+    newInput.onkeyup = (event) => handleInput(event, canvas);
+    newInput.id = `${expressions.length}`;
+    expressions.push(new Expression(""));
+    list.appendChild(newInput);
+}
+
 function handleScroll(event: WheelEvent) {
+    // TODO: render the expression and graph at different zoom levels
     event.preventDefault();
     console.log(event.deltaY);
 }
@@ -149,9 +172,9 @@ window.onload = () => {
     const canvas = new Canvas(canvasElement as HTMLCanvasElement, 1100, 700);
     canvasElement.onwheel = (event) => handleScroll(event);
 
-    const input = document.getElementsByTagName("input")[0];
-    input.onkeyup = (event) => handleInput(canvas, event);
+    const button = document.getElementById("add")!;
+    button.onclick = () => addInputExpression(canvas);
 
-    renderGraph(canvas);
-    input.value = "";
+    addInputExpression(canvas);
+    renderExpressions(canvas);
 }

@@ -33,21 +33,14 @@ function flatten(node: Node, table: LookupTable): Value[] {
     return values;
 }
 
-export class EmptyExpression extends Error {
-    constructor() {
-        super();
-        this.message = "Empty expression. Nothing to evaluate";
-    }
-}
-
 export class Expression {
     values: Value[] = [];
     variables: LookupTable = {};
 
     constructor(expression: string) {
         const tree = parse(expression, true);
-        if (tree === undefined) throw new EmptyExpression();
-        this.values = flatten(tree, this.variables);
+        if (tree !== undefined)
+            this.values = flatten(tree, this.variables);
     }
 
     private lookup(v: string): number {
@@ -58,6 +51,9 @@ export class Expression {
 
     // Evaluate the expression in a single pass
     evaluate(): number {
+        if (this.values.length == 0)
+            throw Error("Nothing to evaluate");
+
         // Return the answer if it's already been evaluated
         if (this.values.length == 1) {
             const v = this.values[0];
