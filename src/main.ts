@@ -28,10 +28,10 @@ function renderGraph(canvas: Canvas) {
 
             // Draw the horizantal and vertical axis labels
             if (x != numTilesX - 1 && y != numTilesY - 1 && x != 0 && y != 0) {
-                canvas.drawText(`${x}`, right - 10, cy, 15);
-                canvas.drawText(`-${x}`, left - 10, cy, 15);
-                canvas.drawText(`${y}`, cx + 8, top - 25, 15);
-                canvas.drawText(`-${y}`, cx + 8, bottom - 25, 15);
+                canvas.drawText(`${x}`, right - 10, cy + 15, 15, black);
+                canvas.drawText(`-${x}`, left - 10, cy + 15, 15, black);
+                canvas.drawText(`${y}`, cx + 8, top + 5, 15, black);
+                canvas.drawText(`-${y}`, cx + 8, bottom + 5, 15, black);
             }
         }
     }

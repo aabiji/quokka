@@ -1,14 +1,4 @@
 
-function getElementRect(element: HTMLElement): DOMRect {
-    const cloned = element.cloneNode() as HTMLElement;
-    cloned.style.visibility = "hidden";
-    cloned.style.width = "fit-content";
-    document.body.appendChild(cloned);
-    const rect = cloned.getBoundingClientRect();
-    document.body.removeChild(cloned);
-    return rect;
-}
-
 export class Canvas {
     width: number;
     height: number;
@@ -59,25 +49,14 @@ export class Canvas {
         this.ctx.stroke();
     }
 
-    // Instead of using the canvas api to draw text, we're directly
-    // positioning text using DOM nodes. We do this so that accessibility
-    // can be handled by the browser and so that the text is rendered better
-    drawText(text: string, x: number, y: number, size: number) {
-        const p = document.createElement("p");
-        p.innerText = text;
-        p.style.font = `normal normal ${size}px Arial`;
-
-        const canvasRect = this.ctx.canvas.getBoundingClientRect();
-        const textRect = getElementRect(p);
-        const realX = canvasRect.x + x - textRect.width / 2;
-        const realY = canvasRect.y + y - textRect.height / 2;
-
-        p.style.position = "absolute";
-        p.style.left = `${realX}px`;
-        p.style.top = `${realY}px`;
-
-        const container = document.getElementById("graph")!;
-        container.appendChild(p);
+    // TODO: Instead of using the canvas api to draw text, we should directly
+    // position text using DOM nodes so We do this so that accessibility
+    // can be handled by the browser and so that the text is rendered better.
+    // However, doing this is slow. So, what's a fast and accessible way to render text?
+    drawText(text: string, x: number, y: number, size: number, color: string) {
+        this.ctx.font = `normal normal ${size}px Arial`;
+        this.ctx.fillStyle = color;
+        this.ctx.fillText(text, x, y);
     }
 }
 
