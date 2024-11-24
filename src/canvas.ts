@@ -1,3 +1,4 @@
+import { Vec2 } from "./vector.ts";
 
 export class Canvas {
     width: number;
@@ -29,34 +30,51 @@ export class Canvas {
         this.ctx.fill();
     }
 
-    drawLine(
-        x1: number, y1: number, x2: number,
-        y2: number, color: string, thickness: number
-    ) {
+    drawLine(p1: Vec2, p2: Vec2, color: string, thickness: number) {
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth = thickness;
         this.ctx.beginPath();
-        this.ctx.moveTo(x1, y1);
-        this.ctx.lineTo(x2, y2);
+        this.ctx.moveTo(p1.x, p1.y);
+        this.ctx.lineTo(p2.x, p2.y);
         this.ctx.stroke();
     }
 
-    drawRect(x: number, y: number, w: number, h: number, color: string) {
+    drawRect(position: Vec2, w: number, h: number, color: string) {
         this.ctx.lineWidth = 1;
         this.ctx.strokeStyle = color;
         this.ctx.beginPath();
-        this.ctx.rect(x, y, w, h);
+        this.ctx.rect(position.x, position.y, w, h);
         this.ctx.stroke();
+    }
+
+    drawPoint(position: Vec2, size: number, color: string) {
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.arc(position.x, position.y, size, 0, 2 * Math.PI);
+        this.ctx.fill();
     }
 
     // TODO: Instead of using the canvas api to draw text, we should directly
     // position text using DOM nodes so We do this so that accessibility
     // can be handled by the browser and so that the text is rendered better.
     // However, doing this is slow. So, what's a fast and accessible way to render text?
-    drawText(text: string, x: number, y: number, size: number, color: string) {
+    drawText(text: string, position: Vec2, size: number, color: string) {
         this.ctx.font = `normal normal ${size}px Arial`;
         this.ctx.fillStyle = color;
-        this.ctx.fillText(text, x, y);
+        this.ctx.fillText(text, position.x, position.y);
+    }
+
+    // Get the position from the center of the canvas
+    pos(x: number, y: number, step: number): Vec2 {
+        let p = new Vec2(0, 0);
+        p.x = this.centerX + x * step;
+        p.y = this.centerY + y * step;
+        return p;
+    }
+
+    // Return true if the position is within the canvas viewing range
+    visible(p: Vec2): boolean {
+        return p.x >= 0 && p.y >= 0 && p.x <= this.width && p.y <= this.height;
     }
 }
 

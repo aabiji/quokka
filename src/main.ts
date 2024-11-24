@@ -1,5 +1,6 @@
 import { Canvas } from "./canvas.ts";
 import { Expression } from "./lib/eval.ts";
+import { Vec2 } from "./vector.ts";
 
 const size = 45; // tile size
 let expressions: Expression[] = [];
@@ -19,35 +20,31 @@ function renderGraph(canvas: Canvas) {
         for (let x = 0; x < numTilesX; x++) {
             // Draw squares at the top and bottom of the horizantal
             // axis and left and right of the vertical axis
-            const [left, right] = [cx - x * size, cx + x * size];
-            const [top, bottom] = [cy - y * size, cy + y * size];
-            canvas.drawRect(left, top, size, size, gray);
-            canvas.drawRect(right, top, size, size, gray);
-            canvas.drawRect(right, bottom, size, size, gray);
-            canvas.drawRect(left, bottom, size, size, gray);
+            canvas.drawRect(canvas.pos(-x, -y, size), size, size, gray);
+            canvas.drawRect(canvas.pos(x, -y, size), size, size, gray);
+            canvas.drawRect(canvas.pos(-x, y, size), size, size, gray);
+            canvas.drawRect(canvas.pos(x, y, size), size, size, gray);
 
             // Draw the horizantal and vertical axis labels
+            // TODO; refactor this
             if (x != numTilesX - 1 && y != numTilesY - 1 && x != 0 && y != 0) {
-                canvas.drawText(`${x}`, right - 10, cy + 15, 15, black);
-                canvas.drawText(`-${x}`, left - 10, cy + 15, 15, black);
-                canvas.drawText(`${y}`, cx + 8, top + 5, 15, black);
-                canvas.drawText(`-${y}`, cx + 8, bottom + 5, 15, black);
+                canvas.drawText(`${x}`, canvas.pos(x - 0.1, 0.5, size), 15, black);
+                canvas.drawText(`-${x}`, canvas.pos(-x - 0.2, 0.5, size), 15, black);
+                canvas.drawText(`${y}`, canvas.pos(0.2, y + 0.1, size), 15, black);
+                canvas.drawText(`-${y}`, canvas.pos(0.2, -y + 0.1, size), 15, black);
             }
         }
     }
 
     // Draw horizantal and vertical axes
-    canvas.drawLine(cx, 0, cx, canvas.height, black, 2);
-    canvas.drawLine(0, cy, canvas.width, cy, black, 2);
+    canvas.drawLine(new Vec2(cx, 0), new Vec2(cx, canvas.height), black, 2);
+    canvas.drawLine(new Vec2(0, cy), new Vec2(canvas.width, cy), black, 2);
 }
 
-// TODO: draw a smooth line through our set of points
 function graphExpression(canvas: Canvas, expression: Expression) {
-    const [cx, cy] = [canvas.centerX, canvas.centerY];
     const numTilesX = Math.ceil(canvas.centerX / size) + 1;
+    let prevPositions = [new Vec2(0, 0), new Vec2(0, 0)];
     let keepPlotting = [true, true];
-    let prevX = [0, 0];
-    let prevY = [0, 0];
 
     // Plot the expression from the center outwards
     for (let i = 0; i < numTilesX; i++) {
@@ -60,19 +57,14 @@ function graphExpression(canvas: Canvas, expression: Expression) {
             expression.variables["x"] = x;
             const y = expression.evaluate();
 
-            const x1 = cx + x * size;
-            const y1 = cy - y * size;
-
+            const position = canvas.pos(x, -y, size);
             // Stop plotting in the current direction (left or right) when
             // the on screen x or y position is outside the viewing range
-            if (x1 < 0 || y1 < 0 || x1 > canvas.width || y1 > canvas.height)
-                keepPlotting[j] = false;
+            if (!canvas.visible(position)) keepPlotting[j] = false;
 
-            const x2 = x == 0 ? x1 : cx + prevX[j] * size;
-            const y2 = x == 0 ? y1 : cy - prevY[j] * size;
-            canvas.drawLine(x1, y1, x2, y2, "#0000ff", 2);
-            prevX[j] = x;
-            prevY[j] = y;
+            const previous = x == 0 ? position : prevPositions[j];
+            canvas.drawLine(position, previous, "#0000ff", 2);
+            prevPositions[j] = position;
         }
     }
 }
