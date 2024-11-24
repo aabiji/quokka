@@ -5,6 +5,13 @@ import { Vec2 } from "./vector.ts";
 const size = 45; // tile size
 let expressions: Expression[] = [];
 
+function randomColor(): string {
+    const r = Math.floor(Math.random() * 256);
+    const g = Math.floor(Math.random() * 256);
+    const b = Math.floor(Math.random() * 256);
+    return `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`;
+}
+
 function renderGraphBackground(canvas: Canvas) {
     canvas.clear();
 
@@ -68,90 +75,65 @@ function getExpressionPoints(canvas: Canvas, expression: Expression): Vec2[] {
         }
     }
 
-    return [...points[0], ...points[1]];
+    // Return points from the left quadrant to the right quadrant in order
+    return [...points[0].reverse(), ...points[1]];
 }
 
-// Describes a spline segment used in the Catmull-Rom spline interplation algorithm
-// Formalae is adapting from this nice explanation:
-// https://qroph.github.io/2018/07/30/smooth-paths-using-catmull-rom-splines.html
-// Splines are also nicely explained here:
-// https://www.youtube.com/watch?v=jvPPXbo87ds
-class SplineSegment {
-    // Constants used to quickly interpolate a spline segment
-    a: Vec2;
-    b: Vec2;
-    c: Vec2;
-    d: Vec2;
+// Use the Catmull-Rom algorithm to interpolate
+// a spline that passes through all of our points.
+// t is the measure of how far along we are along
+// our spline. For example, if t = 3.15, we are 15%
+// along our 3rd cubic bezier curve
+// These are good explanations of the algorithm:
+// https://www.youtube.com/watch?v=9_aJGUTePYo
+// https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+function interpolateSpline(points: Vec2[], t: number): Vec2 {
+    // Point indexes
+    const p1 = Math.floor(t) + 1;
+    const p2 = p1 + 1;
+    const p3 = p2 + 1;
+    const p0 = p1 - 1;
 
-    // Precomputing constants used to represent the spline
-    // segment between p1 and p2. p0, p1, p2, p3 are the 4 control points.
-    // t is the tension. Going from 0 to 1 it describes how taut the spline is.
-    // a is the alpha. Going from 0 to 1 it describes the type of spline.
-    // 0.0 for a uniform spline, 0.5 for a centripetal spline
-    // and 1.0 for a chordal spline
-    constructor(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2, t: number, a: number) {
-        const t01 = p0.distance(p1) ** a;
-        const t12 = p1.distance(p2) ** a;
-        const t23 = p2.distance(p3) ** a;
+    // Make t be between 0 and 1
+    t = t - Math.floor(t);
 
-        const x = p2.sub(p1).addf(t12);
-        const y = p1.sub(p0).divf(t01).sub(p2.sub(p0).divf(t01 + t12));
-        const z = p3.sub(p2).divf(t23).sub(p3.sub(p1).divf(t12 + t23));
-        const m1 = x.mul(y).mulf(1 - t);
-        const m2 = x.mul(z).mulf(1 - t);
+    // Calculate the influences for the 4 control points
+    const t2 = t * t;
+    const t3 = t * t * t;
+    const q0 = -t3 + 2 * t2 - t;
+    const q1 = 3 * t3 - 5 * t2 + 2;
+    const q2 = -3 * t3 + 4 * t2 + t;
+    const q3 = t3 - t2;
 
-        this.a = p1.sub(p2).mulf(2).add(m1).add(m2);
-        this.b = p1.sub(p2).mulf(-3).sub(m1).sub(m1).sub(m2);
-        this.c = m1;
-        this.d = p1;
-    }
-
-    // t describes time, the distance between the 2
-    // points we're interpolating between
-    interpolate(t: number): Vec2 {
-        const ax = this.a.mulf(t ** 3);
-        const bx = this.b.mulf(t ** 2);
-        const cx = this.c.mulf(t);
-        return ax.add(bx).add(cx).add(this.d);
-    }
+    // Calculate x and y based on the 4 control point influences
+    const x = points[p0].x * q0 + points[p1].x * q1 + points[p2].x * q2 + points[p3].x * q3;
+    const y = points[p0].y * q0 + points[p1].y * q1 + points[p2].y * q2 + points[p3].y * q3;
+    return new Vec2(x * 0.5, y * 0.5);
 }
 
-function renderSpline(canvas: Canvas, points: Vec2[]) {
-    // TODO: what if any of the points are undefined??
-    // FIXME: there's something wrong with our splines!
-    let segments = [];
-    for (let i = 0; i < points.length - 3; i++) {
-        const p0 = points[i];
-        const p1 = points[i + 1];
-        const p2 = points[i + 2];
-        const p3 = points[i + 3];
-        const segment = new SplineSegment(p0, p1, p2, p3, 0, 0.5);
-        segments.push(segment);
-    }
+function renderSpline(canvas: Canvas, points: Vec2[], color: string) {
+    // To interpolate k points, we need k + 2 points since we
+    // won't draw the spline through the first and last points
+    points.splice(0, 0, points[0]);
+    points.push(points[points.length - 1]);
+    const maxT = points.length - 3;
 
-    for (const segment of segments) {
-        let previous = segment.interpolate(0);
-        for (let t = 0; t <= 1; t += 0.05) {
-            const point = segment.interpolate(t);
-            canvas.drawLine(point, previous, "#0000ff", 3);
-            previous = point;
-        }
-    }
-
-    for (const point of points) {
-        canvas.drawPoint(point, 3, "#ff0000");
+    let previousPoint = interpolateSpline(points, 0);
+    for (let t = 0; t < maxT; t += 0.05) {
+        const point = interpolateSpline(points, t);
+        canvas.drawLine(point, previousPoint, color, 3);
+        previousPoint = point;
     }
 }
 
 function renderExpressions(canvas: Canvas) {
-    renderGraphBackground(canvas);
-    // TODO: expressions should be different colors
     // TODO; cache points
+    renderGraphBackground(canvas);
     for (const expression of expressions) {
         if (expression.values.length == 0)
             continue; // Empty expression
         const points = getExpressionPoints(canvas, expression);
-        renderSpline(canvas, points);
+        renderSpline(canvas, points, randomColor());
     }
 }
 
