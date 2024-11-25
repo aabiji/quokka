@@ -9,11 +9,11 @@ of a linear equation in a fixed resolution. Why?
 
 Nice to have features:
 - Visualize the graph
-    - Rendering the actual points in a fast and pleasing way
+    - Make the graph accessible for screen readers
     - Zoom in and out and panning around
     - Find potential intersection points
-    - A basic ui for the different equations
-    - Render the equations in a nice way (maybe using latex or something like that???/)
+    - Render the equations in a nice way
+      Use MathJax to render our expressions with Latex
 - Graph the name of the app (would be a nice blog post)
 - Extremely fast and extremely accurate computation
   - Simplify the parse tree better

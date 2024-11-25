@@ -1,6 +1,5 @@
-import { Canvas } from "./canvas.ts";
+import { Canvas, Vec2 } from "./canvas.ts";
 import { Expression } from "./lib/eval.ts";
-import { Vec2 } from "./vector.ts";
 
 const size = 45; // tile size
 let expressions: Expression[] = [];
@@ -57,7 +56,8 @@ function getExpressionPoints(canvas: Canvas, expression: Expression): Vec2[] {
 
     // Calculate points from the center outwards
     for (let i = 0; i < numTilesX; i++) {
-        const values = [-i, i];
+        const values = i == 0 ? [i] : [-i, i];
+
         // Find point on the left (-x) and on the right (x)
         for (let j = 0; j < values.length; j++) {
             if (!keepPlotting[j]) continue;
