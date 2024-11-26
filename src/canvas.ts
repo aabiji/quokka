@@ -48,11 +48,11 @@ export class Canvas {
         this.ctx.stroke();
     }
 
-    drawRect(position: Vec2, w: number, h: number, color: string) {
+    drawSquare(position: Vec2, size: number, color: string) {
         this.ctx.lineWidth = 1;
         this.ctx.strokeStyle = color;
         this.ctx.beginPath();
-        this.ctx.rect(position.x, position.y, w, h);
+        this.ctx.rect(position.x, position.y, size, size);
         this.ctx.stroke();
     }
 

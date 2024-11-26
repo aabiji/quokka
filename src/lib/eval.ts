@@ -49,9 +49,13 @@ export class Expression {
         return this.variables[v];
     }
 
+    empty(): boolean {
+        return this.values.length == 0;
+    }
+
     // Evaluate the expression in a single pass
-    evaluate(): number {
-        if (this.values.length == 0)
+    private evaluate(): number {
+        if (this.empty())
             throw Error("Nothing to evaluate");
 
         // Return the answer if it's already been evaluated
@@ -79,5 +83,15 @@ export class Expression {
             stack.push(newOperand);
         }
         return stack[0] as number;
+    }
+
+    // Get [x, y] values between startX and endX
+    sample(startX: number, endX: number, step: number): number[][] {
+        let points: number[][] = [];
+        for (let x = startX; x < endX * step; x += step) {
+            this.variables["x"] = x;
+            points.push([x, this.evaluate()]);
+        }
+        return points;
     }
 }
