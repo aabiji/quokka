@@ -1,7 +1,10 @@
 import { Canvas, Vec2 } from "./canvas.ts";
 import { Expression } from "./lib/eval.ts";
 
-const size = 45; // tile size
+// TODO: completely refactor everything
+
+let size = 60; // tile size
+let step = 1; // Increment the labels by `step` units each time
 let expressions: Expression[] = [];
 
 function randomColor(): string {
@@ -11,7 +14,34 @@ function randomColor(): string {
     return `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`;
 }
 
-function renderGraphBackground(canvas: Canvas) {
+// TODO: better scientific notation
+function formatNum(x: number) {
+    if (x > 10_000 || x < -0.0001) return x.toExponential();
+    return x;
+}
+
+// Render the labels for the x and y axis
+function renderAxisLabels(canvas: Canvas, x: number, y: number) {
+    const [h, c] = [15, "#000000"];
+    const labelX = formatNum(x * step);
+    const labelY = formatNum(y * step);
+
+    if (x == 0 && y == 0) {
+        canvas.drawText("0", canvas.pos(0.2, 0.4, size), h, c);
+    }
+
+    if (x != 0) {
+        canvas.drawText(`${labelX}`, canvas.pos(x, 0.4, size), h, c);
+        canvas.drawText(`-${labelX}`, canvas.pos(-x, 0.4, size), h, c);
+    }
+
+    if (y != 0) {
+        canvas.drawText(`-${labelY}`, canvas.pos(0.2, y, size), h, c);
+        canvas.drawText(`${labelY}`, canvas.pos(0.2, -y, size), h, c);
+    }
+}
+
+function renderBackground(canvas: Canvas) {
     canvas.clear();
 
     const [gray, black] = ["#cabccc", "#000000"];
@@ -32,13 +62,9 @@ function renderGraphBackground(canvas: Canvas) {
             canvas.drawRect(canvas.pos(x, y, size), size, size, gray);
 
             // Draw the horizantal and vertical axis labels
-            // TODO; refactor this
-            if (x != numTilesX - 1 && y != numTilesY - 1 && x != 0 && y != 0) {
-                canvas.drawText(`${x}`, canvas.pos(x - 0.1, 0.5, size), 15, black);
-                canvas.drawText(`-${x}`, canvas.pos(-x - 0.2, 0.5, size), 15, black);
-                canvas.drawText(`${y}`, canvas.pos(0.2, y + 0.1, size), 15, black);
-                canvas.drawText(`-${y}`, canvas.pos(0.2, -y + 0.1, size), 15, black);
-            }
+            const onAxis = x == 0 || y == 0;
+            const onExtremity = x == numTilesX - 1 || y == numTilesX - 1;
+            if (onAxis && !onExtremity) renderAxisLabels(canvas, x, y);
         }
     }
 
@@ -47,15 +73,16 @@ function renderGraphBackground(canvas: Canvas) {
     canvas.drawLine(new Vec2(0, cy), new Vec2(canvas.width, cy), black, 2);
 }
 
-function getExpressionPoints(canvas: Canvas, expression: Expression): Vec2[] {
-    const numTilesX = Math.ceil(canvas.centerX / size) + 1;
+// TODO: we shouldn't need canvas here
+function samplePoints(canvas: Canvas, expression: Expression): Vec2[] {
+    const maxX = Math.ceil(canvas.centerX / size) + 1;
 
     // For points on the left and right of the vertical axis
     let keepPlotting = [true, true];
     let points: Vec2[][] = [[], []];
 
     // Calculate points from the center outwards
-    for (let i = 0; i < numTilesX; i++) {
+    for (let i = 0; i < maxX * step; i += step) {
         const values = i == 0 ? [i] : [-i, i];
 
         // Find point on the left (-x) and on the right (x)
@@ -66,12 +93,14 @@ function getExpressionPoints(canvas: Canvas, expression: Expression): Vec2[] {
             expression.variables["x"] = x;
             const y = expression.evaluate();
 
-            const position = canvas.pos(x, -y, size);
+            // if we zoom in, the rendered graph should be more spaced apart
+            // if we zoom out, the rendered graph should be spaced in
+            const position = canvas.pos(x, -y, size * (1 / step));
             points[j].push(position);
 
             // Stop plotting in the current direction (left or right) when
             // the on screen x or y position is outside the viewing range
-            if (!canvas.visible(position)) keepPlotting[j] = false;
+            //if (!canvas.visible(position)) keepPlotting[j] = false;
         }
     }
 
@@ -111,6 +140,7 @@ function interpolateSpline(points: Vec2[], t: number): Vec2 {
     return new Vec2(x * 0.5, y * 0.5);
 }
 
+// TODO: this falls apart with the expression `xxx` and the step is 5
 function renderSpline(canvas: Canvas, points: Vec2[], color: string) {
     // To interpolate k points, we need k + 2 points since we
     // won't draw the spline through the first and last points
@@ -128,11 +158,12 @@ function renderSpline(canvas: Canvas, points: Vec2[], color: string) {
 
 function renderExpressions(canvas: Canvas) {
     // TODO; cache points
-    renderGraphBackground(canvas);
+    renderBackground(canvas);
     for (const expression of expressions) {
         if (expression.values.length == 0)
             continue; // Empty expression
-        const points = getExpressionPoints(canvas, expression);
+        const points = samplePoints(canvas, expression);
+        // TODO; colors should stay constant
         renderSpline(canvas, points, randomColor());
     }
 }
@@ -160,16 +191,35 @@ function addInputExpression(canvas: Canvas) {
     list.appendChild(newInput);
 }
 
-function handleScroll(event: WheelEvent) {
-    // TODO: render the expression and graph at different zoom levels
+function handleScroll(event: WheelEvent, canvas: Canvas) {
     event.preventDefault();
-    console.log(event.deltaY);
+
+    // TODO our floating point arithmetic with `step is problematic`
+    // Go through the sequence of the multiples of 1, 2 and 5
+    // Ex: 1, 2, 5, 10, 20, 50, 100, 200, 500, ...
+    const digit = step.toString()[0];
+    const factor = digit == '2' ? 2.5 : 2;
+
+    const direction = event.deltaY < 0 ? -1 : 1;
+    size += 10 * direction;
+
+    if (size < 40) {
+        size = 100;
+        step *= factor;
+    }
+    if (size > 100) {
+        size = 40;
+        step /= factor;
+    }
+
+    renderBackground(canvas);
+    renderExpressions(canvas);
 }
 
 window.onload = () => {
     const canvasElement = document.getElementsByTagName("canvas")[0]!;
     const canvas = new Canvas(canvasElement, 1100, 700);
-    canvasElement.onwheel = (event) => handleScroll(event);
+    canvasElement.onwheel = (event) => handleScroll(event, canvas);
 
     const button = document.getElementById("add")!;
     button.onclick = () => addInputExpression(canvas);

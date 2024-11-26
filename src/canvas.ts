@@ -70,6 +70,14 @@ export class Canvas {
     drawText(text: string, position: Vec2, size: number, color: string) {
         this.ctx.font = `normal normal ${size}px Arial`;
         this.ctx.fillStyle = color;
+
+        // Center the text
+        const metrics = this.ctx.measureText(text);
+        const height =
+            metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+        position.x -= metrics.width / 2;
+        position.y += height / 2;
+
         this.ctx.fillText(text, position.x, position.y);
     }
 
