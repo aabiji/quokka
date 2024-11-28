@@ -1,13 +1,4 @@
-
-export class Vec2 {
-    x: number;
-    y: number;
-
-    constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
-    }
-}
+import { Vec2 } from "./math.ts";
 
 export class Canvas {
     width: number;

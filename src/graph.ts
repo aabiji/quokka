@@ -1,38 +1,7 @@
-import { Canvas, Vec2 } from "./canvas.ts";
+import { Canvas } from "./canvas.ts";
 import { Expression } from "./lib/eval.ts";
-
-// TODO: reimplement this ina  way I understand
-// Use the Catmull-Rom algorithm to interpolate
-// a spline that passes through all of our points.
-// t is the measure of how far along we are along
-// our spline. For example, if t = 3.15, we are 15%
-// along our 3rd cubic bezier curve
-// These are good explanations of the algorithm:
-// https://www.youtube.com/watch?v=9_aJGUTePYo
-// https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
-// FIXME: this implementation is assuming uniform spacing of control points
-function interpolateSpline(points: Vec2[], t: number): Vec2 {
-    const p1 = Math.floor(t) + 1;
-    const p2 = p1 + 1;
-    const p3 = p2 + 1;
-    const p0 = p1 - 1;
-
-    // Make t be between 0 and 1
-    t = t - Math.floor(t);
-
-    // Calculate the influences for the 4 control points
-    const t2 = t * t;
-    const t3 = t * t * t;
-    const q0 = -t3 + 2 * t2 - t;
-    const q1 = 3 * t3 - 5 * t2 + 2;
-    const q2 = -3 * t3 + 4 * t2 + t;
-    const q3 = t3 - t2;
-
-    // Calculate x and y based on the 4 control point influences
-    const x = points[p0].x * q0 + points[p1].x * q1 + points[p2].x * q2 + points[p3].x * q3;
-    const y = points[p0].y * q0 + points[p1].y * q1 + points[p2].y * q2 + points[p3].y * q3;
-    return new Vec2(x * 0.5, y * 0.5);
-}
+import { Vec2 } from "./math.ts";
+import { SplineSegment } from "./spline.ts";
 
 // TODO: move this into utils.ts
 function randomColor(): string {
@@ -176,20 +145,19 @@ class Plot {
     draw() {
         if (this.expression.empty()) return;
 
+        // TODO; why are we missing the start and end???
         // To interpolate k points, we need k + 2 points since we
         // won't draw the spline through the first and last points
-        const newPoints = [
-            this.points[0],
-            ...this.points,
-            this.points[this.points.length - 1]
-        ];
-        const maxT = newPoints.length - 3;
+        const points = [...this.points];
 
-        let previousPoint = interpolateSpline(newPoints, 0);
-        for (let t = 0; t < maxT; t += 0.05) {
-            const point = interpolateSpline(newPoints, t);
-            this.cv.drawLine(point, previousPoint, this.color, 3);
-            previousPoint = point;
+        // TODO: draw connecting lines
+        for (let i = 0; i < points.length - 3; i++) {
+            const [p0, p1, p2, p3] = [points[i], points[i+1], points[i+2], points[i+3]];
+            const segment = new SplineSegment(p0, p1, p2, p3, 0.5);
+            for (let t = 0; t < 1; t += 0.01) {
+                const point = segment.interpolate(t);
+                this.cv.drawPoint(point, 1, "#000000");
+            }
         }
     }
 }
