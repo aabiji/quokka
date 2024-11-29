@@ -71,18 +71,5 @@ export class Canvas {
 
         this.ctx.fillText(text, position.x, position.y);
     }
-
-    // Get the position from the center of the canvas
-    pos(x: number, y: number, step: number): Vec2 {
-        let p = new Vec2(0, 0);
-        p.x = this.centerX + x * step;
-        p.y = this.centerY + y * step;
-        return p;
-    }
-
-    // Return true if the position is within the canvas viewing range
-    visible(p: Vec2): boolean {
-        return p.x >= 0 && p.y >= 0 && p.x <= this.width && p.y <= this.height;
-    }
 }
 

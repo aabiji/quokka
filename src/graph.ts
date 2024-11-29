@@ -3,7 +3,6 @@ import { Expression } from "./lib/eval.ts";
 import { Vec2 } from "./math.ts";
 import { SplineSegment } from "./spline.ts";
 
-// TODO: move this into utils.ts
 function randomColor(): string {
     const r = Math.floor(Math.random() * 256);
     const g = Math.floor(Math.random() * 256);
@@ -11,19 +10,26 @@ function randomColor(): string {
     return `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`;
 }
 
-// TODO: better scientific notation
-function formatNum(x: number) {
-    if (x > 10_000 || x < -0.0001) return x.toExponential();
-    return x;
+// Format the number in scientific notation if it's too big or too small
+function formatNum(x: number): string {
+    const exponent = Math.floor(Math.log10(Math.abs(x)));
+    const coefficient = x / 10 ** exponent;
+    const roundedCo = parseFloat(coefficient.toFixed(3));
+    const roundedX = parseFloat(x.toFixed(3));
+    if (exponent <= -3 || exponent >= 4)
+        return `${roundedCo} • 10^${exponent}`;
+    return `${roundedX}`;
 }
 
-export class GraphPaper {
-    cv: Canvas;
+// TODO: what if we draw this to an offscren canvas
+// and only redraw when the graph changes??
+export class Background {
+    canvas: Canvas;
     zoomLevel: number;
     tileSize: number;
 
     constructor(ref: Canvas, tileSize: number, zoomLevel: number) {
-        this.cv = ref;
+        this.canvas = ref;
         this.zoomLevel = zoomLevel;
         this.tileSize = tileSize;
     }
@@ -31,13 +37,17 @@ export class GraphPaper {
     // Get the number of horizantal tiles in a quadrant
     // and the number of vertical tiles in a quadrant
     private tileCount(): Vec2 {
-        const x = Math.ceil(this.cv.centerX / this.tileSize) + 1;
-        const y = Math.ceil(this.cv.centerY / this.tileSize) + 1;
+        const x = Math.ceil(this.canvas.centerX / this.tileSize) + 1;
+        const y = Math.ceil(this.canvas.centerY / this.tileSize) + 1;
         return new Vec2(x, y);
     }
 
+    // Get the scaled coordinate from the center
     private pos(x: number, y: number): Vec2 {
-        return this.cv.pos(x, y, this.tileSize);
+        let p = new Vec2(0, 0);
+        p.x = this.canvas.centerX + x * this.tileSize;
+        p.y = this.canvas.centerY + y * this.tileSize;
+        return p;
     }
 
     // Draw the grid from the center outwards.
@@ -48,10 +58,10 @@ export class GraphPaper {
             for (let x = 0; x < count.x; x++) {
                 // Draw at top left, top right, bottom left,
                 // bottom right of the horizantal and vertical axis
-                this.cv.drawSquare(this.pos(-x, -y), this.tileSize, c);
-                this.cv.drawSquare(this.pos(x, -y), this.tileSize, c);
-                this.cv.drawSquare(this.pos(-x, y), this.tileSize, c);
-                this.cv.drawSquare(this.pos(x, y), this.tileSize, c);
+                this.canvas.drawSquare(this.pos(-x, -y), this.tileSize, c);
+                this.canvas.drawSquare(this.pos(x, -y), this.tileSize, c);
+                this.canvas.drawSquare(this.pos(-x, y), this.tileSize, c);
+                this.canvas.drawSquare(this.pos(x, y), this.tileSize, c);
             }
         }
     }
@@ -61,28 +71,33 @@ export class GraphPaper {
         const [h, c] = [15, "#000000"];
         const count = this.tileCount();
 
-        this.cv.drawText("0", this.pos(0.2, 0.4), h, c);
+        this.canvas.drawText("0", this.pos(0.2, 0.4), h, c);
 
         // Horizantal axis
         for (let x = 1; x < count.x - 1; x++) {
             const actualX = formatNum(x * this.zoomLevel);
-            this.cv.drawText(`${actualX}`, this.pos(x, 0.4), h, c);
-            this.cv.drawText(`-${actualX}`, this.pos(-x, 0.4), h, c);
+            this.canvas.drawText(`${actualX}`, this.pos(x, 0.4), h, c);
+            this.canvas.drawText(`-${actualX}`, this.pos(-x, 0.4), h, c);
         }
 
         // Vertical axis
         for (let y = 1; y < count.y - 1; y++) {
             const actualY = formatNum(y * this.zoomLevel);
-            this.cv.drawText(`-${actualY}`, this.pos(0.2, y), h, c);
-            this.cv.drawText(`${actualY}`, this.pos(0.2, -y), h, c);
+            this.canvas.drawText(`-${actualY}`, this.pos(0.2, y), h, c);
+            this.canvas.drawText(`${actualY}`, this.pos(0.2, -y), h, c);
         }
+    }
+
+    updateScale(tileSize: number, zoomLevel: number) {
+        this.tileSize = tileSize;
+        this.zoomLevel = zoomLevel;
     }
 
     draw() {
         // Draw horizantal and vertical axes
-        const [cx, cy, c] = [this.cv.centerX, this.cv.centerY, "#000000"];
-        this.cv.drawLine(new Vec2(cx, 0), new Vec2(cx, this.cv.height), c, 2);
-        this.cv.drawLine(new Vec2(0, cy), new Vec2(this.cv.width, cy), c, 2);
+        const [cx, cy, c] = [this.canvas.centerX, this.canvas.centerY, "#000000"];
+        this.canvas.drawLine(new Vec2(cx, 0), new Vec2(cx, this.canvas.height), c, 2);
+        this.canvas.drawLine(new Vec2(0, cy), new Vec2(this.canvas.width, cy), c, 2);
 
         this.drawGrid();
         this.drawLabels();
@@ -90,7 +105,7 @@ export class GraphPaper {
 }
 
 class Plot {
-    cv: Canvas;
+    canvas: Canvas;
     tileSize: number;
     zoomLevel: number;
     color: string;
@@ -103,7 +118,7 @@ class Plot {
         tileSize: number,
         zoomLevel: number
     ) {
-        this.cv = ref;
+        this.canvas = ref;
         this.color = randomColor();
         this.tileSize = tileSize;
         this.zoomLevel = zoomLevel;
@@ -111,54 +126,87 @@ class Plot {
         this.points = [];
     }
 
+    // Get the position from the center based on the zoom level
+    // When zooming in, the points should be more spaced apart
+    // When zooming out, the points should be more spaced in
+    private pos(x: number, y: number): Vec2 {
+        const scaledTilesize = this.tileSize / (1 * this.zoomLevel);
+        let p = new Vec2(0, 0);
+        p.x = this.canvas.centerX + x * scaledTilesize;
+        p.y = this.canvas.centerY + y * scaledTilesize;
+        return p;
+    }
+
+    // Get the on screen coordinates of the plot based on the sampled values
+    // TODO: zoom out with an equation plotted to see just how buggy this is
     computePoints() {
-        const maxX = Math.ceil(this.cv.centerX / this.tileSize) + 1;
-        const values = this.expression.sample(-maxX, maxX, this.zoomLevel);
-
+        if (this.expression.empty()) return;
         this.points = [];
-        let previousPoint = new Vec2(-1, -1);
-        for (const value of values) {
-            // If we zoom in, the rendered graph should be more spaced apart
-            // If we zoom out, the rendered graph should be spaced in
-            const scale = this.tileSize * (1 / this.zoomLevel);
-            const point = this.cv.pos(value[0], -value[1], scale);
-
-            // Include 1 point on both ends (left quadrant
-            // and right quadrant) that's invisible
-            if (this.cv.visible(point)) {
-                if (!this.cv.visible(previousPoint))
-                    this.points.push(previousPoint);
-                this.points.push(point);
-            } else {
-                if (this.cv.visible(previousPoint))
-                    this.points.push(point);
-            }
-            previousPoint = point;
+        const xrange = Math.ceil(this.canvas.centerX / this.tileSize) + 1;
+        const coordinates = this.expression.sample(-xrange, xrange, this.zoomLevel);
+        for (let i = 0; i < coordinates.length; i++) {
+            const coordinate = coordinates[i];
+            this.points.push(this.pos(coordinate[0], -coordinate[1]));
         }
     }
 
-    updateExpression(value: string) {
-        this.expression = new Expression(value); // TODO; handle error
+    update(input: string, tileSize: number, zoomLevel: number) {
+        if (input.length > 0)
+            this.expression = new Expression(input);
+        this.tileSize = tileSize;
+        this.zoomLevel = zoomLevel;
         this.computePoints();
     }
 
     draw() {
         if (this.expression.empty()) return;
-
-        // TODO; why are we missing the start and end???
-        // To interpolate k points, we need k + 2 points since we
-        // won't draw the spline through the first and last points
-        const points = [...this.points];
-
-        // TODO: draw connecting lines
-        for (let i = 0; i < points.length - 3; i++) {
-            const [p0, p1, p2, p3] = [points[i], points[i+1], points[i+2], points[i+3]];
-            const segment = new SplineSegment(p0, p1, p2, p3, 0.5);
-            for (let t = 0; t < 1; t += 0.01) {
+        let previousPoint = undefined;
+        for (let i = 0; i < this.points.length - 3; i++) {
+            const segment = new SplineSegment(
+                this.points[i],
+                this.points[i+1],
+                this.points[i+2],
+                this.points[i+3],
+                0.5
+            );
+            for (let t = 0; t < 1; t += 0.05) {
                 const point = segment.interpolate(t);
-                this.cv.drawPoint(point, 1, "#000000");
+                const prev = previousPoint === undefined ? point : previousPoint;
+                this.canvas.drawLine(point, prev, this.color, 3);
+                previousPoint = point;
             }
         }
+    }
+}
+
+// TODO figure out a better way to scale the zoom level
+// Cycle through multiples of 1, 2 and 5
+// ex: 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50
+class Zoom {
+    index: number = 0;
+    magnitude: number = 0;
+    possibleFactors: number[] = [1, 2, 5];
+
+    in() {
+        this.index--;
+        if (this.index < 0) {
+            this.magnitude--;
+            this.index = this.possibleFactors.length - 1;
+        }
+    }
+
+    out() {
+        this.index++;
+        if (this.index == this.possibleFactors.length) {
+            this.index = 0;
+            this.magnitude ++;
+        }
+    }
+
+    // Compute using scientific notation as inspiration to
+    // avoid compounding precision errors
+    level(): number {
+        return this.possibleFactors[this.index] * 10 ** this.magnitude;
     }
 }
 
@@ -166,65 +214,60 @@ export class Graph {
     tileSize: number;
     minTileSize: number;
     maxTileSize: number;
-    zoomLevel: number;
+    zoom: Zoom;
 
-    cv: Canvas;
-    bg: GraphPaper;
+    canvas: Canvas;
+    bg: Background;
     plots: Plot[];
 
     constructor(ref: Canvas) {
         this.tileSize = 60;
-        this.minTileSize = 40;
+        this.minTileSize = 50;
         this.maxTileSize = 100;
-        this.zoomLevel = 1;
+        this.zoom = new Zoom();
         this.plots = [];
-        this.cv = ref;
-        this.bg = new GraphPaper(ref, this.tileSize, this.zoomLevel);
+        this.canvas = ref;
+        this.bg = new Background(ref, this.tileSize, this.zoom.level());
     }
 
     draw() {
-        this.cv.clear();
+        this.canvas.clear();
         this.bg.draw(); // TODO: don't need to draw this unless we're zooming
         for (const plot of this.plots) {
             plot.draw();
         }
     }
 
-    // direction is either -1 to zoom in our 1 to zoom out
-    zoom(direction: number) {
-        // TODO: explain logic
+    changeScale(zoomIn: boolean) {
+        this.tileSize += 10 * (zoomIn ? 1 : -1);
 
-        // TODO our floating point arithmetic with `zoomLevel` is problematic
-        // Go through the sequence of the multiples of 1, 2 and 5
-        // Ex: 1, 2, 5, 10, 20, 50, 100, 200, 500, ...
-        const digit = this.zoomLevel.toString()[0];
-        const factor = digit == '2' ? 2.5 : 2;
-
-        this.tileSize += 10 * direction;
-
+        // When zooming out, the grid tiles get smaller
+        // and smaller until we zoom out
         if (this.tileSize < this.minTileSize) {
             this.tileSize = this.maxTileSize;
-            this.zoomLevel *= factor;
+            this.zoom.out();
         }
 
+        // When zooming in, the tiles get bigger and
+        // bigger until we zoom in
         if (this.tileSize > this.maxTileSize) {
             this.tileSize = this.minTileSize;
-            this.zoomLevel /= factor;
+            this.zoom.in();
         }
 
-        // Update values
+        this.bg.zoomLevel = this.zoom.level();
         this.bg.tileSize = this.tileSize;
-        this.bg.zoomLevel = this.zoomLevel;
-        for (let i = 0; i < this.plots.length; i++) {
-            this.plots[i].tileSize = this.tileSize;
-            this.plots[i].zoomLevel = this.zoomLevel;
-            this.plots[i].computePoints();
+        for (let plot of this.plots) {
+            plot.update("", this.tileSize, this.zoom.level());
         }
+
+        this.draw();
     }
 
     addPlot(): number {
         const lengthBefore = this.plots.length;
-        const p = new Plot(this.cv, new Expression(""), this.tileSize, this.zoomLevel);
+        const expr = new Expression("");
+        const p = new Plot(this.canvas, expr, this.tileSize, this.zoom.level());
         this.plots.push(p);
         return lengthBefore;
     }

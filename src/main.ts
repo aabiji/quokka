@@ -8,7 +8,7 @@ function handleInput(event: KeyboardEvent) {
     const element = event.target as HTMLInputElement;
     const index = Number(element.id);
     try {
-        graph.plots[index].updateExpression(element.value);
+        graph.plots[index].update(element.value, graph.tileSize, graph.zoom.level());
         graph.draw();
     } catch (error) {
         element.classList.add("bad-input");
@@ -25,9 +25,7 @@ function addInputExpression() {
 
 function handleScroll(event: WheelEvent) {
     event.preventDefault();
-    const direction = event.deltaY < 0 ? -1 : 1;
-    graph.zoom(direction);
-    graph.draw();
+    graph.changeScale(event.deltaY < 0 ? true : false);
 }
 
 window.onload = () => {
