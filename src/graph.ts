@@ -3,6 +3,8 @@ import { Expression } from "./lib/eval.ts";
 import { Vec2 } from "./math.ts";
 import { SplineSegment } from "./spline.ts";
 
+// TODO: only generate easily visible colors
+// (also take theme into account)
 function randomColor(): string {
     const r = Math.floor(Math.random() * 256);
     const g = Math.floor(Math.random() * 256);
@@ -221,9 +223,9 @@ export class Graph {
     plots: Plot[];
 
     constructor(ref: Canvas) {
-        this.tileSize = 60;
         this.minTileSize = 50;
         this.maxTileSize = 100;
+        this.tileSize = this.minTileSize + 10; // TODO: remove magic number
         this.zoom = new Zoom();
         this.plots = [];
         this.canvas = ref;
@@ -238,7 +240,16 @@ export class Graph {
         }
     }
 
-    changeScale(zoomIn: boolean) {
+    updateAfterZoom() {
+        this.bg.zoomLevel = this.zoom.level();
+        this.bg.tileSize = this.tileSize;
+        for (let plot of this.plots) {
+            plot.update("", this.tileSize, this.zoom.level());
+        }
+        this.draw();
+    }
+
+    changeZoom(zoomIn: boolean) {
         this.tileSize += 10 * (zoomIn ? 1 : -1);
 
         // When zooming out, the grid tiles get smaller
@@ -255,13 +266,14 @@ export class Graph {
             this.zoom.in();
         }
 
-        this.bg.zoomLevel = this.zoom.level();
-        this.bg.tileSize = this.tileSize;
-        for (let plot of this.plots) {
-            plot.update("", this.tileSize, this.zoom.level());
-        }
+        this.updateAfterZoom();
+    }
 
-        this.draw();
+    resetZoom() {
+        this.zoom.index = 0;
+        this.zoom.magnitude = 0;
+        this.tileSize = this.minTileSize + 10;
+        this.updateAfterZoom();
     }
 
     addPlot(): number {

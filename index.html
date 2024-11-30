@@ -7,13 +7,31 @@
         <title>Quokka</title>
     </head>
     <body>
-        <div class="content">
-            <div class="sidebar">
+        <div class="sidebar">
+            <div class="controls">
                 <button id="add">+</button>
-                <div id="expressions"></div>
+                <button id="theme-toggle">◐</button>
+                <button id="hide">&lt;&lt;</button>
             </div>
-            <div id="graph"><canvas></canvas></div>
+
+            <div id="expressions">
+                <!---TODO: append this div when adding new expressions-->
+                <div class="expression">
+                    <div class="selector"></div>
+                    <input type="text" />
+                    <span class="close">x</span>
+                </div>
+            </div>
         </div>
+
+        <div class="graph-controls">
+            <button id="zoom-in"> + </button>
+            <button id="zoom-out"> - </button>
+            <button id="zoom-reset"> ⌂ </button>
+        </div>
+
+        <div id="graph"><canvas></canvas></div>
+
         <script type="module" src="/src/main.ts"></script>
     </body>
 </html>

@@ -1,30 +1,104 @@
 
-.content {
+::root {
+    color-scheme: light dark;
+}
+
+body {
+    margin: 0;
+    overflow-y: hidden;
     display: flex;
 }
 
-.sidebar button {
+button {
     display: block;
-    padding: 10px 10px;
-}
-
-#expressions {
-    max-height: 92vh;
-    width: fit-content;
-    overflow: scroll;
-}
-
-#expressions input {
-    width: 380px;
-    font-size: 15px;
-    padding: 10px 10px;
-}
-
-.bad-input, .bad-input:focus {
-    border-color: red;
-    outline: none;
+    cursor: pointer;
+    color: light-dark(#000000, #ffffff);
 }
 
 #graph {
     border: 1px solid #bfbfbf;
+}
+
+.graph-controls {
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    gap: 5px;
+}
+
+.graph-controls button {
+    width: 30px;
+    height: 30px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.sidebar  {
+    width: 25%;
+}
+
+.sidebar .controls {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+}
+
+.sidebar button {
+    font-size: 25px;
+    border-color: transparent;
+    background-color: transparent;
+}
+
+#expressions {
+    max-height: 95vh; /* TODO: dodgy!! */
+    width: 100%;
+    overflow: scroll;
+}
+
+.expression {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+.expression .selector {
+    background-color: red;
+    border: none;
+    cursor: pointer;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    margin: 0px 5px 0px 5px;
+}
+
+.expression input {
+    font-size: 15px;
+    padding: 10px 10px;
+    border: none;
+    flex-grow: 1;
+    height: 100%;
+    border-left: 1px solid black;
+}
+
+.expression input:focus {
+    border: none;
+    outline: none;
+    border-left: 1px solid black;
+}
+
+.expression .close {
+    font-size: 30px;
+    cursor: pointer;
+    margin: 0px 5px 0px 5px;
+}
+
+/*TODO: make this for the entire expression div*/
+.bad-input, .bad-input:focus {
+    border-color: red;
+    outline: none;
 }
