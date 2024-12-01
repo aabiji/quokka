@@ -7,6 +7,8 @@ of a linear equation in a fixed resolution. Why?
 - Make some [cool graphs](https://www.desmos.com/calculator/btezq8hinh)
 - Solving and implementing hard technical problems is fun
 
+Icons taken from [here](https://www.svgrepo.com/collection/font-awesome-solid-icons)
+
 Nice to have features:
 - Visualize the graph
     - Make the graph accessible for screen readers

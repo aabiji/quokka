@@ -3,10 +3,12 @@
     color-scheme: light dark;
 }
 
-body {
+html, body {
     margin: 0;
     overflow-y: hidden;
     display: flex;
+    width: 100%;
+    height: 100%;
 }
 
 button {
@@ -15,8 +17,9 @@ button {
     color: light-dark(#000000, #ffffff);
 }
 
-#graph {
-    border: 1px solid #bfbfbf;
+button img {
+    width: 100%;
+    height: 100%;;
 }
 
 .graph-controls {
@@ -34,67 +37,100 @@ button {
     height: 30px;
     font-size: 20px;
     font-weight: bold;
+    background-color: light-dark(#fcfcfc, #31363F);
 }
 
 .sidebar  {
     width: 25%;
+    height: 100%;
+    border-right: 1px solid light-dark(#bfbfbf, #31363F);
+    background-color: light-dark(#ffffff, #222831);
 }
 
 .sidebar .controls {
     width: 100%;
+    height: 45px;
     display: flex;
+    align-items: center;
     justify-content: space-between;
 }
 
-.sidebar button {
-    font-size: 25px;
+.sidebar .controls button {
+    width: 30px;
+    height: 30px;
     border-color: transparent;
     background-color: transparent;
 }
 
 #expressions {
-    max-height: 95vh; /* TODO: dodgy!! */
     width: 100%;
+    height: 100%;
     overflow: scroll;
 }
 
 .expression {
-    width: 100%;
+    width: 99%;
+    height: 55px;
     display: flex;
     align-items: center;
-    border-top: 1px solid black;
-    border-bottom: 1px solid black;
+    border: 1px solid light-dark(#777877, #4e5664);
+}
+
+.expression:has(input:focus) {
+    border: 1px solid #76ABAE;
+}
+
+.expression .selector-background {
+    height: 100%;
+    width: fit-content;
+    align-content: center;
+    padding: 0px 8px 0px 8px;
+    background: light-dark(#d6d6d6, #31363F);
 }
 
 .expression .selector {
-    background-color: red;
+    margin: 0;
     border: none;
     cursor: pointer;
     width: 25px;
     height: 25px;
+    -webkit-appearance: none;
+    appearance: none;
     border-radius: 50%;
-    margin: 0px 5px 0px 5px;
+    border: 3px solid light-dark(#ffffff, #aaaaaa);
 }
 
-.expression input {
+.expression .selector:checked {
+    border: none;
+    background-color: red;
+}
+
+.expression input[type=text] {
     font-size: 15px;
-    padding: 10px 10px;
+    padding: 0px 10px;
+    height: 100%;
     border: none;
     flex-grow: 1;
-    height: 100%;
-    border-left: 1px solid black;
+    min-width: 0;
+    color: light-dark(#000000, #eeeeee);
+    background-color: light-dark(#ffffff, #222831);
 }
 
-.expression input:focus {
+.expression input[type=text]:focus {
     border: none;
     outline: none;
-    border-left: 1px solid black;
 }
 
 .expression .close {
-    font-size: 30px;
-    cursor: pointer;
-    margin: 0px 5px 0px 5px;
+    padding: 0px 5px 0px 5px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    background-color: transparent;
+}
+
+.expression .close img { /* make the svg icon gray */
+    filter: invert(91%) sepia(0%) saturate(7027%) hue-rotate(165deg) brightness(56%) contrast(48%);
 }
 
 /*TODO: make this for the entire expression div*/

@@ -9,25 +9,26 @@
     <body>
         <div class="sidebar">
             <div class="controls">
-                <button id="add">+</button>
-                <button id="theme-toggle">◐</button>
-                <button id="hide">&lt;&lt;</button>
+                <button id="add"><img src="/icons/add.svg"/></button>
+                <button id="theme-toggle"><img src="/icons/moon.svg"/></button>
+                <button id="hide"><img src="/icons/double-angle-left.svg"/></button>
             </div>
 
             <div id="expressions">
-                <!---TODO: append this div when adding new expressions-->
                 <div class="expression">
-                    <div class="selector"></div>
+                    <div class="selector-background">
+                        <input type="radio" class="selector"/>
+                    </div>
                     <input type="text" />
-                    <span class="close">x</span>
+                    <button class="close"><img src="/icons/close.svg"/></button>
                 </div>
             </div>
         </div>
 
         <div class="graph-controls">
-            <button id="zoom-in"> + </button>
-            <button id="zoom-out"> - </button>
-            <button id="zoom-reset"> ⌂ </button>
+            <button id="zoom-in"><img src="/icons/zoom-in.svg"/></button>
+            <button id="zoom-out"><img src="/icons/zoom-out.svg"/></button>
+            <button id="zoom-reset"><img src="/icons/home.svg"/></button>
         </div>
 
         <div id="graph"><canvas></canvas></div>
