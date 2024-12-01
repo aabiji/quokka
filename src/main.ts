@@ -47,10 +47,38 @@ function handleScroll(event: WheelEvent) {
     graph.changeZoom(event.deltaY < 0 ? true : false);
 }
 
-function toggleTheme() {
+function toggleTheme(event: MouseEvent) {
+    // Change css to dark mode
     let body = document.getElementsByTagName("body")[0];
     const before = body.style.colorScheme;
-    body.style.colorScheme = before == "light" ? "dark" : "light";
+    body.style.colorScheme = before == "" || before == "light" ? "dark" : "light";
+    const after = body.style.colorScheme;
+
+    // Change the theme toggle icon
+    const src = after == "light" ? "/icons/moon.svg" : "/icons/sun.svg";
+    (event.target! as HTMLImageElement).src = src;
+
+    // Change icon colors
+    const blackFilter =
+        "invert(0%) sepia(100%) saturate(7500%) hue-rotate(328deg) brightness(89%) contrast(114%)";
+    const whiteFilter =
+        "invert(94%) sepia(4%) saturate(0%) hue-rotate(89deg) brightness(112%) contrast(73%)";
+    let images = document.getElementsByTagName("img");
+    for (let img of images) {
+        console.log(img);
+        img.style.filter = after == "light" ? blackFilter : whiteFilter;
+    }
+
+    // Change canvas theme
+    canvas.darkMode = after == "light" ? false : true;
+    graph.draw();
+}
+
+window.onresize = () => {
+    const canvasElement = document.getElementsByTagName("canvas")[0]!;
+    const canvasX = canvasElement.getBoundingClientRect().x;
+    canvas.resize(window.innerWidth - canvasX, window.innerHeight)
+    graph.draw();
 }
 
 window.onload = () => {
@@ -58,7 +86,8 @@ window.onload = () => {
     canvasElement.onwheel = (event) => handleScroll(event);
 
     const canvasX = canvasElement.getBoundingClientRect().left;
-    canvas = new Canvas(canvasElement, window.innerWidth - canvasX, window.innerHeight);
+    const [width, height] = [window.innerWidth - canvasX, window.innerHeight];
+    canvas = new Canvas(canvasElement, width, height, false);
     graph = new Graph(canvas);
 
     const add = document.getElementById("add")!;
@@ -74,7 +103,7 @@ window.onload = () => {
     zoomReset.onclick = () => graph.resetZoom();
 
     const toggle = document.getElementById("theme-toggle")!;
-    toggle.onclick = () => toggleTheme();
+    toggle.onclick = (event) => toggleTheme(event);
 
     //addInputExpression();
     graph.draw();

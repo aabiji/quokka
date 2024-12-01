@@ -5,27 +5,40 @@ export class Canvas {
     height: number;
     centerX: number;
     centerY: number;
+    element: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
+    darkMode: boolean;
 
-    constructor(element: HTMLCanvasElement, width: number, height: number) {
-        const dpr = window.devicePixelRatio;
+    constructor(
+        element: HTMLCanvasElement,
+        width: number,
+        height: number,
+        theme: boolean,
+    ) {
+        this.element = element;
+        this.width = this.height = this.centerX = this.centerY = 0;
+        this.ctx = element.getContext("2d", { alpha: false })!;
+        this.resize(width, height);
+        this.darkMode = theme;
+    }
+
+    resize(width: number, height: number) {
         this.width = width;
         this.height = height;
         this.centerX = Math.floor(width / 2);
         this.centerY = Math.floor(height / 2);
 
-        element.width = width * dpr;
-        element.height = height * dpr;
-        element.style.width = `${width}px`;
-        element.style.height = `${height}px`;
-
-        this.ctx = element.getContext("2d", { alpha: false })!;
+        const dpr = window.devicePixelRatio;
+        this.element.width = width * dpr;
+        this.element.height = height * dpr;
+        this.element.style.width = `${width}px`;
+        this.element.style.height = `${height}px`;
         this.ctx.scale(dpr, dpr);
     }
 
     clear() {
         this.ctx.beginPath();
-        this.ctx.fillStyle = "#ffffff";
+        this.ctx.fillStyle = this.darkMode ? "#000000" : "#ffffff";
         this.ctx.rect(0, 0, this.width, this.height);
         this.ctx.fill();
     }

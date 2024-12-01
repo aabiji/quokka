@@ -37,7 +37,8 @@ button img {
     height: 30px;
     font-size: 20px;
     font-weight: bold;
-    background-color: light-dark(#fcfcfc, #31363F);
+    border: none;
+    background-color: light-dark(#cccccc, #31363F);
 }
 
 .sidebar  {

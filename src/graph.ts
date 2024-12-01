@@ -54,7 +54,7 @@ export class Background {
 
     // Draw the grid from the center outwards.
     private drawGrid() {
-        const c = "#cabccc";
+        const c = this.canvas.darkMode ? "#323333" : "#cabccc";
         const count = this.tileCount();
         for (let y = 0; y < count.y; y++) {
             for (let x = 0; x < count.x; x++) {
@@ -70,7 +70,8 @@ export class Background {
 
     // Draw the labels for the x and y axis
     private drawLabels() {
-        const [h, c] = [15, "#000000"];
+        const h = 15; // font size
+        const c = this.canvas.darkMode ? "#ffffff" : "#000000";
         const count = this.tileCount();
 
         this.canvas.drawText("0", this.pos(0.2, 0.4), h, c);
@@ -97,7 +98,8 @@ export class Background {
 
     draw() {
         // Draw horizantal and vertical axes
-        const [cx, cy, c] = [this.canvas.centerX, this.canvas.centerY, "#000000"];
+        const c = this.canvas.darkMode ? "#ffffff" : "#000000";
+        const [cx, cy] = [this.canvas.centerX, this.canvas.centerY];
         this.canvas.drawLine(new Vec2(cx, 0), new Vec2(cx, this.canvas.height), c, 2);
         this.canvas.drawLine(new Vec2(0, cy), new Vec2(this.canvas.width, cy), c, 2);
 
