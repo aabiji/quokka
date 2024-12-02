@@ -81,6 +81,11 @@ button img {
     border: 1px solid #76ABAE;
 }
 
+.bad-input, .bad-input:has(input:focus) {
+    border-color: red;
+    outline: none;
+}
+
 .expression .selector-background {
     height: 100%;
     width: fit-content;
@@ -103,10 +108,9 @@ button img {
 
 .expression .selector:checked {
     border: none;
-    background-color: red;
 }
 
-.expression input[type=text] {
+.expression .expression-input {
     font-size: 15px;
     padding: 0px 10px;
     height: 100%;
@@ -117,7 +121,7 @@ button img {
     background-color: light-dark(#ffffff, #222831);
 }
 
-.expression input[type=text]:focus {
+.expression .expression-input {
     border: none;
     outline: none;
 }
@@ -132,10 +136,4 @@ button img {
 
 .expression .close img { /* make the svg icon gray */
     filter: invert(91%) sepia(0%) saturate(7027%) hue-rotate(165deg) brightness(56%) contrast(48%);
-}
-
-/*TODO: make this for the entire expression div*/
-.bad-input, .bad-input:focus {
-    border-color: red;
-    outline: none;
 }

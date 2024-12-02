@@ -3,15 +3,6 @@ import { Expression } from "./lib/eval.ts";
 import { Vec2 } from "./math.ts";
 import { SplineSegment } from "./spline.ts";
 
-// TODO: only generate easily visible colors
-// (also take theme into account)
-function randomColor(): string {
-    const r = Math.floor(Math.random() * 256);
-    const g = Math.floor(Math.random() * 256);
-    const b = Math.floor(Math.random() * 256);
-    return `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`;
-}
-
 // Format the number in scientific notation if it's too big or too small
 function formatNum(x: number): string {
     const exponent = Math.floor(Math.log10(Math.abs(x)));
@@ -115,19 +106,22 @@ class Plot {
     color: string;
     points: Vec2[];
     expression: Expression;
+    visible: boolean;
 
     constructor(
         ref: Canvas,
         expression: Expression,
+        color: string,
         tileSize: number,
         zoomLevel: number
     ) {
         this.canvas = ref;
-        this.color = randomColor();
+        this.color = color;
         this.tileSize = tileSize;
         this.zoomLevel = zoomLevel;
         this.expression = expression;
         this.points = [];
+        this.visible = true;
     }
 
     // Get the position from the center based on the zoom level
@@ -155,15 +149,14 @@ class Plot {
     }
 
     update(input: string, tileSize: number, zoomLevel: number) {
-        if (input.length > 0)
-            this.expression = new Expression(input);
+        this.expression = new Expression(input);
         this.tileSize = tileSize;
         this.zoomLevel = zoomLevel;
         this.computePoints();
     }
 
     draw() {
-        if (this.expression.empty()) return;
+        if (this.expression.empty() || !this.visible) return;
         let previousPoint = undefined;
         for (let i = 0; i < this.points.length - 3; i++) {
             const segment = new SplineSegment(
@@ -278,10 +271,16 @@ export class Graph {
         this.updateAfterZoom();
     }
 
-    addPlot(): number {
+    addPlot(color: string): number {
         const lengthBefore = this.plots.length;
         const expr = new Expression("");
-        const p = new Plot(this.canvas, expr, this.tileSize, this.zoom.level());
+        const p = new Plot(
+            this.canvas,
+            expr,
+            color,
+            this.tileSize,
+            this.zoom.level()
+        );
         this.plots.push(p);
         return lengthBefore;
     }

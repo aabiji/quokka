@@ -3,7 +3,6 @@ import { Graph } from "./graph.ts";
 
 /*
 Things to explore:
-- Replace button text with actual icons
 - FIX: plotting gets slower because the x sampling range is wrong
 (we should be using the zoom level)
 - Panning around the graph with the mouse
@@ -22,6 +21,16 @@ Simplify, simplify, simpplify
 
 let graph: Graph;
 let canvas: Canvas;
+let parser: DOMParser;
+
+// TODO: only generate easily visible colors
+// (also take theme into account)
+function randomColor(): string {
+    const r = Math.floor(Math.random() * 256);
+    const g = Math.floor(Math.random() * 256);
+    const b = Math.floor(Math.random() * 256);
+    return `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`;
+}
 
 function handleInput(event: KeyboardEvent) {
     const element = event.target as HTMLInputElement;
@@ -29,17 +38,48 @@ function handleInput(event: KeyboardEvent) {
     try {
         graph.plots[index].update(element.value, graph.tileSize, graph.zoom.level());
         graph.draw();
+        element.parentElement!.classList.remove("bad-input");
     } catch (error) {
-        element.classList.add("bad-input");
+        element.parentElement!.classList.add("bad-input");
     }
 }
 
 function addInputExpression() {
-    const list = document.getElementById("expressions")!;
-    const newInput = document.createElement("input");
-    newInput.onkeyup = (event) => handleInput(event);
-    newInput.id = `${graph.addPlot()}`;
-    list.appendChild(newInput);
+    const color = randomColor();
+    const index = graph.addPlot(color);
+
+    const html = `
+        <div class="expression">
+            <div class="selector-background">
+                <input type="checkbox" class="selector"/>
+            </div>
+            <input type="text" class="expression-input"/>
+            <button class="close"><img src="/icons/close.svg"/></button>
+        </div>
+    `;
+    const doc = parser.parseFromString(html, "text/html");
+    let div = doc.getElementsByTagName("div")[0];
+
+    let input = div.getElementsByClassName("expression-input")[0] as HTMLElement;
+    input.onkeyup = (event) => handleInput(event);
+    input.id = `${index}`;
+
+    let checkbox = div.getElementsByClassName("selector")[0] as HTMLInputElement;
+    checkbox.checked = true;
+    checkbox.style.backgroundColor = checkbox.checked ? color : "";
+    checkbox.onchange = () => {
+        checkbox.style.backgroundColor = checkbox.checked ? color : "";
+        graph.plots[index].visible = checkbox.checked;
+        graph.draw();
+    };
+
+    const button = div.getElementsByClassName("close")[0] as HTMLElement;
+    button.onclick = () => {
+        graph.plots.slice(index, 1);
+        div.remove();
+    }
+
+    document.getElementById("expressions")!.appendChild(div);
 }
 
 function handleScroll(event: WheelEvent) {
@@ -90,21 +130,13 @@ window.onload = () => {
     canvas = new Canvas(canvasElement, width, height, false);
     graph = new Graph(canvas);
 
-    const add = document.getElementById("add")!;
-    add.onclick = () => addInputExpression();
+    document.getElementById("add")!.onclick = () => addInputExpression();
+    document.getElementById("zoom-in")!.onclick = () => graph.changeZoom(true);
+    document.getElementById("zoom-out")!.onclick = () => graph.changeZoom(false);
+    document.getElementById("zoom-reset")!.onclick = () => graph.resetZoom();
+    document.getElementById("theme-toggle")!.onclick = (event) => toggleTheme(event);
 
-    const zoomIn = document.getElementById("zoom-in")!;
-    zoomIn.onclick = () => graph.changeZoom(true);
-
-    const zoomOut = document.getElementById("zoom-out")!;
-    zoomOut.onclick = () => graph.changeZoom(false);
-
-    const zoomReset = document.getElementById("zoom-reset")!;
-    zoomReset.onclick = () => graph.resetZoom();
-
-    const toggle = document.getElementById("theme-toggle")!;
-    toggle.onclick = (event) => toggleTheme(event);
-
-    //addInputExpression();
+    parser = new DOMParser();
+    addInputExpression();
     graph.draw();
 }
