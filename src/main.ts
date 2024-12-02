@@ -8,8 +8,6 @@ Things to explore:
 - Panning around the graph with the mouse
 We'll need to change to be albe to change the origin
 - Improve drawing of labels when they're in scientific notation
-- Do we really need to pass in tileSize and zoomLevel into the subclasses?
-Simplify, simplify, simpplify
 - Fix buggy spline drawing. Try to understand fast Catmull-Rom again
 - Observe how desmos scales its labels and rework our implementation
 - Only redraw the graph background when it changes
@@ -36,7 +34,7 @@ function handleInput(event: KeyboardEvent) {
     const element = event.target as HTMLInputElement;
     const index = Number(element.id);
     try {
-        graph.plots[index].update(element.value, graph.tileSize, graph.zoom.level());
+        graph.plots[index].update(element.value);
         graph.draw();
         element.parentElement!.classList.remove("bad-input");
     } catch (error) {
@@ -75,7 +73,7 @@ function addInputExpression() {
 
     const button = div.getElementsByClassName("close")[0] as HTMLElement;
     button.onclick = () => {
-        graph.plots.slice(index, 1);
+        graph.plots.slice(index, 1); // TODO: we'd need to update the input id of subsequent expressions
         div.remove();
     }
 
@@ -105,7 +103,6 @@ function toggleTheme(event: MouseEvent) {
         "invert(94%) sepia(4%) saturate(0%) hue-rotate(89deg) brightness(112%) contrast(73%)";
     let images = document.getElementsByTagName("img");
     for (let img of images) {
-        console.log(img);
         img.style.filter = after == "light" ? blackFilter : whiteFilter;
     }
 
