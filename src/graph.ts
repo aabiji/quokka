@@ -3,80 +3,44 @@ import { Expression } from "./lib/eval.ts";
 import { Vec2 } from "./math.ts";
 import { SplineSegment } from "./spline.ts";
 
-// TODO figure out a better way to scale the zoom level
-// (We shouldn't need a full blown class for this)
-// Cycle through multiples of 1, 2 and 5
-// ex: 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50
-class Zoom {
-    index: number = 0;
-    magnitude: number = 0;
-    possibleFactors: number[] = [1, 2, 5];
-
-    in() {
-        this.index--;
-        if (this.index < 0) {
-            this.magnitude--;
-            this.index = this.possibleFactors.length - 1;
-        }
-    }
-
-    out() {
-        this.index++;
-        if (this.index == this.possibleFactors.length) {
-            this.index = 0;
-            this.magnitude ++;
-        }
-    }
-
-    // Compute using scientific notation as inspiration to
-    // avoid compounding precision errors
-    level(): number {
-        return this.possibleFactors[this.index] * 10 ** this.magnitude;
-    }
-}
-
-// General graph settings
 class Context {
-    // A "tile" is just a square on the grid
-    tileSize: number;
+    tileSize: number;  // A "tile" is just a square on the grid
     minTileSize: number;
     maxTileSize: number;
-    zoomLevel: number;
-    zoom: Zoom;
+    zoomLevel: number; // Scale at which the graph is drawn
 
     constructor() {
         this.tileSize = 60;
         this.minTileSize = 50;
         this.maxTileSize = 100;
-        this.tileSize = 60;
-        this.zoom = new Zoom();
-        this.zoomLevel = this.zoom.level();
+        this.zoomLevel = 1;
     }
 
     reset() {
-        this.zoom.index = 0;
-        this.zoom.magnitude = 0;
+        this.zoomLevel = 1;
         this.tileSize = 60;
     }
 
-    changeZoom(zoomIn: boolean) {
+    zoom(zoomIn: boolean) {
         this.tileSize += 10 * (zoomIn ? 1 : -1);
 
-        // When zooming out, the grid tiles get smaller
-        // and smaller until we zoom out
+        // When zooming out, the grid tiles get smaller and smaller until we zoom out
+        // The zoom level follows a sequence like 1, 2, 5, 10, 20, 50, 100, 200 ...
         if (this.tileSize < this.minTileSize) {
             this.tileSize = this.maxTileSize;
-            this.zoom.out();
+            const firstDigit = this.zoomLevel.toString()[0];
+            this.zoomLevel = firstDigit == '2' ? this.zoomLevel * 2.5 : this.zoomLevel * 2;
         }
 
-        // When zooming in, the tiles get bigger and
-        // bigger until we zoom in
+        // When zooming in, the tiles get bigger and bigger until we zoom in
+        // The zoom level follows a sequence like 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01
         if (this.tileSize > this.maxTileSize) {
             this.tileSize = this.minTileSize;
-            this.zoom.in();
+            this.zoomLevel = Math.floor(this.zoomLevel / 2);
         }
 
-        this.zoomLevel = this.zoom.level();
+        // Clamp float to 2 decimal places
+        this.zoomLevel = Math.round((this.zoomLevel + Number.EPSILON) * 100) / 100;
     }
 }
 
@@ -263,7 +227,7 @@ export class Graph {
     }
 
     changeZoom(zoomIn: boolean) {
-        this.ctx.changeZoom(zoomIn);
+        this.ctx.zoom(zoomIn);
         this.draw();
     }
 
