@@ -13,6 +13,7 @@ We'll need to change to be albe to change the origin
 - Only redraw the graph background when it changes
   Could maybe render the background to an offscreen canvas
 - Use MathJax to render math expression
+- FIXME: apparently 2x + 2 is an invalid expression????
 - Parse equations: y = ... or x + y = 0 or v = 10 or equations like that
 - Parse functions like sin, cos, tan, sqrt, log
 */
@@ -21,12 +22,17 @@ let graph: Graph;
 let canvas: Canvas;
 let parser: DOMParser;
 
-// TODO: only generate easily visible colors
-// (also take theme into account)
+function resizeCanvas() {
+    const canvasElement = document.getElementsByTagName("canvas")[0]!;
+    const canvasX = canvasElement.getBoundingClientRect().x;
+    canvas.resize(window.innerWidth - canvasX, window.innerHeight)
+    graph.draw();
+}
+
 function randomColor(): string {
-    const r = Math.floor(Math.random() * 256);
-    const g = Math.floor(Math.random() * 256);
-    const b = Math.floor(Math.random() * 256);
+    const random = (lower: number, upper: number) =>
+         Math.floor(lower + Math.random() * (upper - lower));
+    const [r, g, b] = [random(128, 256), random(128, 256), random(128, 256)];
     return `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`;
 }
 
@@ -42,6 +48,25 @@ function handleInput(event: KeyboardEvent) {
     }
 }
 
+function removePlot(event: MouseEvent) {
+    const parent = (event.target as HTMLElement).parentElement!.parentElement!; // FIXME!
+    const inputElement = parent.querySelector("input[type=text]")!;
+    const index = Number(inputElement.id);
+
+    graph.plots.splice(index, 1);
+    graph.draw();
+
+    // Adjust subsequent input ids
+    // TODO: come up with a better id scheme so we don't have to do this
+    const inputs = document.querySelectorAll("input[type=text]");
+    for (let element of inputs) {
+        const numId = Number(element.id);
+        if (numId > index) element.id = `${numId - 1}`;
+    }
+    parent.remove();
+}
+
+// TODO: make this less messy
 function addInputExpression() {
     const color = randomColor();
     const index = graph.addPlot(color);
@@ -72,10 +97,7 @@ function addInputExpression() {
     };
 
     const button = div.getElementsByClassName("close")[0] as HTMLElement;
-    button.onclick = () => {
-        graph.plots.slice(index, 1); // TODO: we'd need to update the input id of subsequent expressions
-        div.remove();
-    }
+    button.onclick = (event) => removePlot(event);
 
     document.getElementById("expressions")!.appendChild(div);
 }
@@ -111,12 +133,30 @@ function toggleTheme(event: MouseEvent) {
     graph.draw();
 }
 
-window.onresize = () => {
-    const canvasElement = document.getElementsByTagName("canvas")[0]!;
-    const canvasX = canvasElement.getBoundingClientRect().x;
-    canvas.resize(window.innerWidth - canvasX, window.innerHeight)
-    graph.draw();
+function toggleSidebar() {
+    let button = document.getElementById("hide")!;
+    let img = button.firstChild as HTMLImageElement;
+    let sidebar = document.getElementsByClassName("sidebar")[0];
+    let controls = sidebar.getElementsByClassName("controls")[0];
+    const visible = !sidebar.classList.contains("hidden-sidebar");
+
+    sidebar.classList.toggle("hidden-sidebar");
+    resizeCanvas();
+
+    if (visible) {
+        controls.removeChild(button);
+        img.src = "/icons/double-angle-right.svg";
+        button.classList.add("show");
+        document.body.prepend(button);
+    } else {
+        document.body.removeChild(button);
+        button.classList.remove("show");
+        img.src = "/icons/double-angle-left.svg";
+        controls.appendChild(button);
+    }
 }
+
+window.onresize = () => resizeCanvas();
 
 window.onload = () => {
     const canvasElement = document.getElementsByTagName("canvas")[0]!;
@@ -132,6 +172,7 @@ window.onload = () => {
     document.getElementById("zoom-out")!.onclick = () => graph.changeZoom(false);
     document.getElementById("zoom-reset")!.onclick = () => graph.resetZoom();
     document.getElementById("theme-toggle")!.onclick = (event) => toggleTheme(event);
+    document.getElementById("hide")!.onclick = () => toggleSidebar();
 
     parser = new DOMParser();
     addInputExpression();

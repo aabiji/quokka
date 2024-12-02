@@ -38,12 +38,13 @@ button img {
     font-size: 20px;
     font-weight: bold;
     border: none;
-    background-color: light-dark(#cccccc, #31363F);
+    background-color: light-dark(#eeeeee, #31363F);
 }
 
 .sidebar  {
     width: 25%;
     height: 100%;
+    display: block;
     border-right: 1px solid light-dark(#bfbfbf, #31363F);
     background-color: light-dark(#ffffff, #222831);
 }
@@ -61,6 +62,20 @@ button img {
     height: 30px;
     border-color: transparent;
     background-color: transparent;
+}
+
+.hidden-sidebar {
+    display: none;
+}
+
+.show {
+    width: 30px;
+    height: 30px;
+    border-color: transparent;
+    background-color: transparent;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 #expressions {
@@ -91,7 +106,7 @@ button img {
     width: fit-content;
     align-content: center;
     padding: 0px 8px 0px 8px;
-    background: light-dark(#d6d6d6, #31363F);
+    background: light-dark(#eeeeee, #31363F);
 }
 
 .expression .selector {
