@@ -88,7 +88,7 @@ export class Expression {
     // Get [x, y] values between startX and endX
     sample(startX: number, endX: number, step: number): number[][] {
         let points: number[][] = [];
-        for (let x = startX; x < endX * step; x += step) {
+        for (let x = startX; x < endX; x += step) {
             this.variables["x"] = x;
             points.push([x, this.evaluate()]);
         }

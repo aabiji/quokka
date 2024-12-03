@@ -16,31 +16,38 @@ class Context {
         this.zoomLevel = 1;
     }
 
-    reset() {
-        this.zoomLevel = 1;
-        this.tileSize = 60;
-    }
+    // Action is 0 to reset, 1 to zoom in and -1 to zoom out
+    zoom(action: number) {
+        if (action != -1 && action != 0 && action != 1)
+            throw new Error(`Invalid action: ${action}`);
+        if (action == 0) {
+            this.zoomLevel = 1;
+            this.tileSize = 60;
+            return;
+        }
 
-    zoom(zoomIn: boolean) {
-        this.tileSize += 10 * (zoomIn ? 1 : -1);
+        this.tileSize += 10 * action;
+
+        const num = this.zoomLevel.toString();
+        const [firstDigit, lastDigit] = [num[0], num[num.length - 1]];
 
         // When zooming out, the grid tiles get smaller and smaller until we zoom out
-        // The zoom level follows a sequence like 1, 2, 5, 10, 20, 50, 100, 200 ...
         if (this.tileSize < this.minTileSize) {
             this.tileSize = this.maxTileSize;
-            const firstDigit = this.zoomLevel.toString()[0];
-            this.zoomLevel = firstDigit == '2' ? this.zoomLevel * 2.5 : this.zoomLevel * 2;
+            // In order to generate a sequence like 1, 2, 5, 10, 20, 50, 100 ...
+            this.zoomLevel *= firstDigit == '2' || lastDigit == '2' ? 2.5 : 2;
         }
 
         // When zooming in, the tiles get bigger and bigger until we zoom in
-        // The zoom level follows a sequence like 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01
         if (this.tileSize > this.maxTileSize) {
             this.tileSize = this.minTileSize;
-            this.zoomLevel = Math.floor(this.zoomLevel / 2);
+            // In order to generate a sequence like 1, 0.5, 0.2, 0.1 ...
+            this.zoomLevel /= lastDigit == '5' ? 2.5 : 2;
         }
 
-        // Clamp float to 2 decimal places
-        this.zoomLevel = Math.round((this.zoomLevel + Number.EPSILON) * 100) / 100;
+        // Limit precision errors
+        const exponent = Math.floor(Math.abs(Math.log10(this.zoomLevel)));
+        this.zoomLevel = parseFloat(this.zoomLevel.toFixed(exponent + 1));
     }
 }
 
@@ -48,11 +55,10 @@ class Context {
 function formatNum(x: number): string {
     const exponent = Math.floor(Math.log10(Math.abs(x)));
     const coefficient = x / 10 ** exponent;
-    const roundedCo = parseFloat(coefficient.toFixed(3));
-    const roundedX = parseFloat(x.toFixed(3));
-    if (exponent <= -3 || exponent >= 4)
-        return `${roundedCo} • 10^${exponent}`;
-    return `${roundedX}`;
+    const rounded = parseFloat(coefficient.toFixed(5));
+    if (exponent <= -5 || exponent >= 6)
+        return `${rounded} x 10^${exponent}`;
+    return `${parseFloat(x.toFixed(5))}`;
 }
 
 // TODO: what if we draw this to an offscren canvas
@@ -171,9 +177,11 @@ class Plot {
     computePoints() {
         if (this.expression.empty()) return;
 
-        this.points = [];
-        const xrange = Math.ceil(this.canvas.centerX / this.ctx.tileSize) + 1;
+        const numTiles = Math.ceil(this.canvas.centerX / this.ctx.tileSize) + 2;
+        const xrange = numTiles * this.ctx.zoomLevel;
         const coords = this.expression.sample(-xrange, xrange, this.ctx.zoomLevel);
+
+        this.points = [];
         for (const coordinate of coords) {
             this.points.push(this.pos(coordinate[0], -coordinate[1]));
         }
@@ -226,13 +234,11 @@ export class Graph {
         }
     }
 
-    changeZoom(zoomIn: boolean) {
-        this.ctx.zoom(zoomIn);
-        this.draw();
-    }
-
-    resetZoom() {
-        this.ctx.reset();
+    changeZoom(action: number) {
+        this.ctx.zoom(action);
+        for (let plot of this.plots) {
+            plot.computePoints();
+        }
         this.draw();
     }
 

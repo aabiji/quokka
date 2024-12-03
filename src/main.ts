@@ -3,13 +3,9 @@ import { Graph } from "./graph.ts";
 
 /*
 Things to explore:
-- FIX: plotting gets slower because the x sampling range is wrong
-(we should be using the zoom level)
 - Panning around the graph with the mouse
-We'll need to change to be albe to change the origin
+  We'll need to change to be albe to change the origin
 - Improve drawing of labels when they're in scientific notation
-- Fix buggy spline drawing. Try to understand fast Catmull-Rom again
-- Observe how desmos scales its labels and rework our implementation
 - Only redraw the graph background when it changes
   Could maybe render the background to an offscreen canvas
 - Use MathJax to render math expression
@@ -29,11 +25,10 @@ function resizeCanvas() {
     graph.draw();
 }
 
+// Generate random colors that have full saturation
 function randomColor(): string {
-    const random = (lower: number, upper: number) =>
-         Math.floor(lower + Math.random() * (upper - lower));
-    const [r, g, b] = [random(128, 256), random(128, 256), random(128, 256)];
-    return `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`;
+    const h = Math.floor(Math.random() * 360);
+    return `hsl(${h}, 100%, 50%)`;
 }
 
 function handleInput(event: KeyboardEvent) {
@@ -104,7 +99,7 @@ function addInputExpression() {
 
 function handleScroll(event: WheelEvent) {
     event.preventDefault();
-    graph.changeZoom(event.deltaY < 0 ? true : false);
+    graph.changeZoom(event.deltaY < 0 ? 1 : -1);
 }
 
 function toggleTheme(event: MouseEvent) {
@@ -168,9 +163,9 @@ window.onload = () => {
     graph = new Graph(canvas);
 
     document.getElementById("add")!.onclick = () => addInputExpression();
-    document.getElementById("zoom-in")!.onclick = () => graph.changeZoom(true);
-    document.getElementById("zoom-out")!.onclick = () => graph.changeZoom(false);
-    document.getElementById("zoom-reset")!.onclick = () => graph.resetZoom();
+    document.getElementById("zoom-in")!.onclick = () => graph.changeZoom(1);
+    document.getElementById("zoom-out")!.onclick = () => graph.changeZoom(-1);
+    document.getElementById("zoom-reset")!.onclick = () => graph.changeZoom(0);
     document.getElementById("theme-toggle")!.onclick = (event) => toggleTheme(event);
     document.getElementById("hide")!.onclick = () => toggleSidebar();
 
