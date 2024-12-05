@@ -25,10 +25,12 @@ class Context {
 
     // Get the actual xy coordinates, taking zooming
     // and panning around the graph into account
-    actualPosition(p: Vec2): Vec2 {
+    actualCoordinate(p: Vec2, useY: boolean = true): Vec2 {
+        const usingX = p.y * this.zoomLevel + this.offset.x * this.zoomLevel;
+        const usingY = p.y * this.zoomLevel + this.offset.y * this.zoomLevel;
         return new Vec2(
             p.x * this.zoomLevel + this.offset.x * this.zoomLevel,
-            p.y * this.zoomLevel + this.offset.y * this.zoomLevel,
+            useY ? usingY : usingX
         );
     }
 
@@ -39,6 +41,7 @@ class Context {
         if (action == 0) {
             this.zoomLevel = 1;
             this.tileSize = 60;
+            this.offset = new Vec2(0, 0);
             return;
         }
 
@@ -162,7 +165,7 @@ export class Background {
             this.drawBar(origin.y, true, color);
             for (let x = -maxX; x <= maxX; x++) {
                 const pos = this.pos(x, originYCoord + 0.4);
-                const realX = this.ctx.actualPosition(new Vec2(x, 0)).x;
+                const realX = this.ctx.actualCoordinate(new Vec2(x, 0)).x;
                 if (realX == 0) continue;
                 this.canvas.drawText(`${formatNum(realX)}`, pos, fontSize, color);
             }
@@ -173,7 +176,7 @@ export class Background {
             this.drawBar(origin.x, false, color);
             for (let y = -maxY; y <= maxY; y++) {
                 const pos = this.pos(originXCoord + 0.4, y);
-                const realY = this.ctx.actualPosition(new Vec2(0, y)).y * -1;
+                const realY = this.ctx.actualCoordinate(new Vec2(0, y)).y * -1;
                 if (realY == 0) continue;
                 this.canvas.drawText(`${formatNum(realY)}`, pos, fontSize, color);
             }
@@ -215,18 +218,19 @@ class Plot {
     }
 
     // Get the on screen coordinates of the plot based on the sampled values
-    // TODO: zoom out with an equation plotted to see just how buggy this is
     computePoints() {
         if (this.expression.empty()) return;
 
+        // Get the lower and upper bound for x based on what's visible on screen
         const numTiles = Math.ceil(this.canvas.centerX / this.ctx.tileSize) + 2;
-        const xrange = numTiles * this.ctx.zoomLevel;
-        const coords = this.expression.sample(-xrange, xrange, this.ctx.zoomLevel);
+        const bounds = this.ctx.actualCoordinate(new Vec2(-numTiles, numTiles), false);
 
-        this.points = [];
-        for (const coordinate of coords) {
-            this.points.push(this.pos(coordinate[0], -coordinate[1]));
-        }
+        // Get the on screen coordinates while offsetting properly
+        const coords = this.expression.sample(bounds.x, bounds.y, this.ctx.zoomLevel);
+        this.points = coords.map((xy) => {
+            const offset = this.ctx.zoomedOffset();
+            return this.pos(xy[0] - offset.x, -xy[1] - offset.y);
+        });
     }
 
     update(input: string) {

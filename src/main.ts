@@ -1,6 +1,9 @@
 import { Canvas } from "./canvas.ts";
 import { Graph } from "./graph.ts";
 
+// TODO: pan around the graph with the mouse
+// TODO: correct graph axis position relative to zoom (look at desmos for inspiration)
+
 let graph: Graph;
 let canvas: Canvas;
 let parser: DOMParser;
