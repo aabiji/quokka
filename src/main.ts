@@ -1,19 +1,6 @@
 import { Canvas } from "./canvas.ts";
 import { Graph } from "./graph.ts";
 
-/*
-Things to explore:
-- Panning around the graph with the mouse
-  We'll need to change to be albe to change the origin
-- Improve drawing of labels when they're in scientific notation
-- Only redraw the graph background when it changes
-  Could maybe render the background to an offscreen canvas
-- Use MathJax to render math expression
-- FIXME: apparently 2x + 2 is an invalid expression????
-- Parse equations: y = ... or x + y = 0 or v = 10 or equations like that
-- Parse functions like sin, cos, tan, sqrt, log
-*/
-
 let graph: Graph;
 let canvas: Canvas;
 let parser: DOMParser;
@@ -21,8 +8,8 @@ let parser: DOMParser;
 function resizeCanvas() {
     const canvasElement = document.getElementsByTagName("canvas")[0]!;
     const canvasX = canvasElement.getBoundingClientRect().x;
-    canvas.resize(window.innerWidth - canvasX, window.innerHeight)
-    graph.draw();
+    canvas.resize(window.innerWidth - canvasX, window.innerHeight);
+    graph.draw(true);
 }
 
 // Generate random colors that have full saturation

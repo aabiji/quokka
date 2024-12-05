@@ -8,12 +8,28 @@ class Context {
     minTileSize: number;
     maxTileSize: number;
     zoomLevel: number; // Scale at which the graph is drawn
+    offset: Vec2;
 
     constructor() {
         this.tileSize = 60;
         this.minTileSize = 50;
         this.maxTileSize = 100;
         this.zoomLevel = 1;
+        this.offset = new Vec2(0, 0);
+    }
+
+    // Get the offset, taking zooming into account
+    zoomedOffset(): Vec2 {
+        return new Vec2(this.offset.x * this.zoomLevel, this.offset.y * this.zoomLevel);
+    }
+
+    // Get the actual xy coordinates, taking zooming
+    // and panning around the graph into account
+    actualPosition(p: Vec2): Vec2 {
+        return new Vec2(
+            p.x * this.zoomLevel + this.offset.x * this.zoomLevel,
+            p.y * this.zoomLevel + this.offset.y * this.zoomLevel,
+        );
     }
 
     // Action is 0 to reset, 1 to zoom in and -1 to zoom out
@@ -53,6 +69,7 @@ class Context {
 
 // Format the number in scientific notation if it's too big or too small
 function formatNum(x: number): string {
+    if (x === 0) return '0';
     const exponent = Math.floor(Math.log10(Math.abs(x)));
     const coefficient = x / 10 ** exponent;
     const rounded = parseFloat(coefficient.toFixed(5));
@@ -61,8 +78,6 @@ function formatNum(x: number): string {
     return `${parseFloat(x.toFixed(5))}`;
 }
 
-// TODO: what if we draw this to an offscren canvas
-// and only redraw when the graph changes??
 export class Background {
     canvas: Canvas;
     ctx: Context;
@@ -72,8 +87,8 @@ export class Background {
         this.ctx = context;
     }
 
-    // Get the number of horizantal tiles in a quadrant
-    // and the number of vertical tiles in a quadrant
+    // Get the number of horizantal tiles in a quadrant of the graph
+    // and the number of vertical tiles in a quadrant of the graph
     private tileCount(): Vec2 {
         const x = Math.ceil(this.canvas.centerX / this.ctx.tileSize) + 1;
         const y = Math.ceil(this.canvas.centerY / this.ctx.tileSize) + 1;
@@ -89,7 +104,7 @@ export class Background {
     }
 
     // Draw the grid from the center outwards.
-    private drawGrid() {
+    drawGrid() {
         const c = this.canvas.darkMode ? "#323333" : "#cabccc";
         const count = this.tileCount();
         for (let y = 0; y < count.y; y++) {
@@ -104,38 +119,65 @@ export class Background {
         }
     }
 
-    // Draw the labels for the x and y axis
-    private drawLabels() {
-        const h = 15; // font size
-        const c = this.canvas.darkMode ? "#ffffff" : "#000000";
-        const count = this.tileCount();
-
-        this.canvas.drawText("0", this.pos(0.2, 0.4), h, c);
-
-        // Horizantal axis
-        for (let x = 1; x < count.x - 1; x++) {
-            const actualX = formatNum(x * this.ctx.zoomLevel);
-            this.canvas.drawText(`${actualX}`, this.pos(x, 0.4), h, c);
-            this.canvas.drawText(`-${actualX}`, this.pos(-x, 0.4), h, c);
-        }
-
-        // Vertical axis
-        for (let y = 1; y < count.y - 1; y++) {
-            const actualY = formatNum(y * this.ctx.zoomLevel);
-            this.canvas.drawText(`-${actualY}`, this.pos(0.2, y), h, c);
-            this.canvas.drawText(`${actualY}`, this.pos(0.2, -y), h, c);
+    // Draw a full length horizantal or vertical line
+    drawBar(value: number, horizantal: boolean, color: string) {
+        if (horizantal) {
+            const top = new Vec2(0, value);
+            const bottom = new Vec2(this.canvas.width, value);
+            this.canvas.drawLine(top, bottom, color, 3);
+        } else {
+            const left = new Vec2(value, 0);
+            const right = new Vec2(value, this.canvas.height);
+            this.canvas.drawLine(left, right, color, 3);
         }
     }
 
-    draw() {
-        // Draw horizantal and vertical axes
-        const c = this.canvas.darkMode ? "#ffffff" : "#000000";
-        const [cx, cy] = [this.canvas.centerX, this.canvas.centerY];
-        this.canvas.drawLine(new Vec2(cx, 0), new Vec2(cx, this.canvas.height), c, 2);
-        this.canvas.drawLine(new Vec2(0, cy), new Vec2(this.canvas.width, cy), c, 2);
+    // Draw the labels for the x and y axes if they're visible
+    drawLabels() {
+        const fontSize = 15;
+        const color = this.canvas.darkMode ? "#ffffff" : "#000000";
 
-        this.drawGrid();
-        this.drawLabels();
+        // Get the number of tiles that can be shown in 1 quadrant
+        const count = this.tileCount();
+        const offset = this.ctx.zoomedOffset();
+        const [maxX, maxY] = [count.x - 2, count.y - 2];
+        const zoomed = new Vec2(maxX * this.ctx.zoomLevel, maxY * this.ctx.zoomLevel);
+        const shifted = new Vec2(zoomed.x - offset.x, zoomed.y - offset.y);
+
+        // Find the coordinate that when offset, will be 0
+        const originXCoord = shifted.x - (shifted.x + offset.x);
+        const originYCoord = shifted.y - (shifted.y + offset.y);
+        const origin = this.pos(originXCoord, originYCoord);
+
+        // Check if the horizantal and vertical axes are visible
+        const xOriginVisible = zoomed.x - Math.abs(offset.x) >= 0;
+        const yOriginVisible = zoomed.y - Math.abs(offset.y) >= 0;
+        if (xOriginVisible && yOriginVisible) {
+            const offsetOrigin = this.pos(originXCoord + 0.4, originYCoord + 0.4);
+            this.canvas.drawText("0", offsetOrigin, fontSize, color);
+        }
+
+        // Draw the horizantal axis labels if they're visible
+        if (yOriginVisible) {
+            this.drawBar(origin.y, true, color);
+            for (let x = -maxX; x <= maxX; x++) {
+                const pos = this.pos(x, originYCoord + 0.4);
+                const realX = this.ctx.actualPosition(new Vec2(x, 0)).x;
+                if (realX == 0) continue;
+                this.canvas.drawText(`${formatNum(realX)}`, pos, fontSize, color);
+            }
+        }
+
+        // Draw the vertical axis labels if they're visible
+        if (xOriginVisible) {
+            this.drawBar(origin.x, false, color);
+            for (let y = -maxY; y <= maxY; y++) {
+                const pos = this.pos(originXCoord + 0.4, y);
+                const realY = this.ctx.actualPosition(new Vec2(0, y)).y * -1;
+                if (realY == 0) continue;
+                this.canvas.drawText(`${formatNum(realY)}`, pos, fontSize, color);
+            }
+        }
     }
 }
 
@@ -226,20 +268,20 @@ export class Graph {
         this.plots = [];
     }
 
-    draw() {
+    draw(recompute: boolean = false) {
         this.canvas.clear();
-        this.bg.draw(); // TODO: don't need to draw this unless we're zooming
-        for (const plot of this.plots) {
+        this.bg.drawGrid();
+        this.bg.drawLabels();
+        for (let plot of this.plots) {
+            if (recompute)
+                plot.computePoints();
             plot.draw();
         }
     }
 
     changeZoom(action: number) {
         this.ctx.zoom(action);
-        for (let plot of this.plots) {
-            plot.computePoints();
-        }
-        this.draw();
+        this.draw(true);
     }
 
     addPlot(color: string): number {

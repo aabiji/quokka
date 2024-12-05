@@ -12,14 +12,14 @@ Icons taken from [here](https://www.svgrepo.com/collection/font-awesome-solid-ic
 Nice to have features:
 - Visualize the graph
     - Make the graph accessible for screen readers
-    - Zoom in and out and panning around
     - Find potential intersection points
-    - Render the equations in a nice way
-      Use MathJax to render our expressions with Latex
+      Use MathJax to render our expressions and labels with Latex
 - Graph the name of the app (would be a nice blog post)
 - Extremely fast and extremely accurate computation
   - Simplify the parse tree better
+    - BUG: apparently 2x + 2 isn't something we can we can evalute??
   - GPU acceleration??
+  - Only redraw parts of the graph that have changed
 - Support diverse expressions:
     - Equations
       - Support equations (ex: y = ...)
