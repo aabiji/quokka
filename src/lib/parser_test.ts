@@ -29,7 +29,7 @@ test("Test precedence", () => {
     }
     const tree = parse("12 * 34^45 - 123 / 789 + (256 + 652)", false);
     expect(tree).toEqual(expected);
-    expect(parse("", false)).toBe(undefined);
+    expect(parse("", false)).toBeUndefined();
 });
 
 test("Test implicit multiplication", () => {
